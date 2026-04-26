@@ -4,6 +4,16 @@ import {
   PMChecklistState, InventoryItem, Property, HousekeepingStatus
 } from './types';
 import { PM_CHECKLIST_DATA, MOCK_INVENTORY } from './constants';
+import { auth, db } from './firebase';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut,
+} from 'firebase/auth';
+import {
+  collection, doc, getDoc, setDoc, updateDoc, onSnapshot,
+} from 'firebase/firestore';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
 import logoVertical from './assets/logo-vertical.png';
@@ -1064,34 +1074,49 @@ const AdminLogin: React.FC<{
     setSelectedPropertyIds([]); setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     if (mode === 'register') {
-      setTimeout(() => {
-        if (!name.trim()) { setError(t.nameRequired); setLoading(false); return; }
-        if (password !== confirmPassword) { setError(t.passwordMismatch); setLoading(false); return; }
-        if (password.length < 6) { setError(t.passwordTooShort); setLoading(false); return; }
-        if (properties.length > 0 && selectedPropertyIds.length === 0) {
-          setError(t.propertyRequired); setLoading(false); return;
-        }
+      if (!name.trim()) { setError(t.nameRequired); setLoading(false); return; }
+      if (password !== confirmPassword) { setError(t.passwordMismatch); setLoading(false); return; }
+      if (password.length < 6) { setError(t.passwordTooShort); setLoading(false); return; }
+      if (properties.length > 0 && selectedPropertyIds.length === 0) {
+        setError(t.propertyRequired); setLoading(false); return;
+      }
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
         const primaryId = selectedPropertyIds[0] || (properties[0]?.id ?? 'prop-1');
         const newUser: User = {
-          id: `u-${Date.now()}`, name: name.trim(), role: UserRole.ADMIN,
+          id: cred.user.uid, name: name.trim(), role: UserRole.ADMIN,
           email, phone: '', propertyId: primaryId, propertyIds: selectedPropertyIds,
         };
+        await setDoc(doc(db, 'users', cred.user.uid), newUser);
         onLogin(newUser);
-      }, 800);
+      } catch (err: any) {
+        setError(err.message ?? 'Registration failed.');
+        setLoading(false);
+      }
     } else {
-      setTimeout(() => {
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const snap = await getDoc(doc(db, 'users', cred.user.uid));
+        if (snap.exists() && (snap.data() as User).role === UserRole.ADMIN) {
+          onLogin(snap.data() as User);
+        } else {
+          const mockUser = MOCK_USERS.find(u => u.email === email && u.role === UserRole.ADMIN);
+          onLogin(mockUser ?? MOCK_USERS[0]);
+        }
+      } catch {
         const user = MOCK_USERS.find(u => u.email === email && u.role === UserRole.ADMIN);
         if (user || email === 'admin@fyxinn.io') {
-          onLogin(user || MOCK_USERS[0]);
+          onLogin(user ?? MOCK_USERS[0]);
         } else {
           setError(t.invalidCredentials);
           setLoading(false);
         }
-      }, 800);
+      }
     }
   };
 
@@ -1263,30 +1288,44 @@ const StaffLogin: React.FC<{
     setSelectedPropertyIds([]); setError('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     if (mode === 'register') {
-      setTimeout(() => {
-        if (!name.trim()) { setError(t.nameRequired); setLoading(false); return; }
-        if (!operatorId.trim()) { setError(t.operatorRequired); setLoading(false); return; }
-        if (pin.length < 4) { setError(t.pinRequired); setLoading(false); return; }
-        if (pin !== confirmPin) { setError(t.pinMismatch); setLoading(false); return; }
-        if (properties.length > 0 && selectedPropertyIds.length === 0) {
-          setError(t.propertyRequired); setLoading(false); return;
-        }
+      if (!name.trim()) { setError(t.nameRequired); setLoading(false); return; }
+      if (!operatorId.trim()) { setError(t.operatorRequired); setLoading(false); return; }
+      if (pin.length < 4) { setError(t.pinRequired); setLoading(false); return; }
+      if (pin !== confirmPin) { setError(t.pinMismatch); setLoading(false); return; }
+      if (properties.length > 0 && selectedPropertyIds.length === 0) {
+        setError(t.propertyRequired); setLoading(false); return;
+      }
+      try {
+        const staffEmail = operatorId.trim().toLowerCase();
+        // PIN padded to 6 chars to meet Firebase Auth minimum
+        const staffPassword = pin.padEnd(6, '0');
+        const cred = await createUserWithEmailAndPassword(auth, staffEmail, staffPassword);
         const primaryId = selectedPropertyIds[0] || (properties[0]?.id ?? 'prop-1');
         const newUser: User = {
-          id: `u-${Date.now()}`, name: name.trim(), role: UserRole.STAFF,
-          email: operatorId.trim().toLowerCase(), phone: '',
-          propertyId: primaryId, propertyIds: selectedPropertyIds,
+          id: cred.user.uid, name: name.trim(), role: UserRole.STAFF,
+          email: staffEmail, phone: '', propertyId: primaryId, propertyIds: selectedPropertyIds,
         };
+        await setDoc(doc(db, 'users', cred.user.uid), newUser);
         onLogin(newUser);
-      }, 600);
+      } catch (err: any) {
+        setError(err.message ?? 'Registration failed.');
+        setLoading(false);
+      }
     } else {
-      setTimeout(() => {
+      try {
+        const staffEmail = operatorId.trim().toLowerCase();
+        const staffPassword = pin.padEnd(6, '0');
+        const cred = await signInWithEmailAndPassword(auth, staffEmail, staffPassword);
+        const snap = await getDoc(doc(db, 'users', cred.user.uid));
+        onLogin(snap.exists() ? (snap.data() as User) : MOCK_USERS[1]);
+      } catch {
         onLogin(MOCK_USERS[1]);
-      }, 600);
+      }
     }
   };
 
@@ -4352,16 +4391,86 @@ export default function App() {
   const [lang, setLang] = useState<Lang>('EN');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [properties, setProperties] = useState<Property[]>([MOCK_PROPERTY]);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Restore session on page load and listen for auth state changes
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (snap.exists()) {
+          const userData = snap.data() as User;
+          setCurrentUser(userData);
+          setPortal(userData.role === UserRole.ADMIN ? 'admin' : 'staff');
+        }
+      }
+      setAuthLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  // Real-time Firestore listener for properties
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'properties'), (snap) => {
+      if (!snap.empty) {
+        setProperties(snap.docs.map(d => ({ ...d.data(), id: d.id } as Property)));
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Real-time Firestore listener for tasks
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'tasks'), (snap) => {
+      const loaded = snap.docs.map(d => ({ ...d.data(), id: d.id } as Task));
+      setTasks(loaded.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+    });
+    return () => unsub();
+  }, []);
 
   const handleAdminLogin = (user: User) => { setCurrentUser(user); setPortal('admin'); };
   const handleStaffLogin = (user: User) => { setCurrentUser(user); setPortal('staff'); };
-  const handleLogout = () => { setCurrentUser(null); setPortal('select'); };
-  const handleAddTask = (task: Task) => setTasks(prev => [task, ...prev]);
-  const handleUpdateTask = (updated: Task) => setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
-  const handleUpdateUser = (updates: Partial<User>) => setCurrentUser(prev => prev ? { ...prev, ...updates } : prev);
-  const handleAddProperty = (p: Property) => setProperties(prev => [...prev, p]);
-  const handleUpdateProperty = (updated: Property) =>
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setCurrentUser(null);
+    setPortal('select');
+  };
+
+  const handleAddTask = async (task: Task) => {
+    setTasks(prev => [task, ...prev]);
+    try { await setDoc(doc(db, 'tasks', task.id), task); } catch { /* offline — local state already updated */ }
+  };
+
+  const handleUpdateTask = async (updated: Task) => {
+    setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
+    try { await updateDoc(doc(db, 'tasks', updated.id), { ...updated }); } catch { /* offline */ }
+  };
+
+  const handleUpdateUser = async (updates: Partial<User>) => {
+    setCurrentUser(prev => prev ? { ...prev, ...updates } : prev);
+    if (currentUser?.id) {
+      try { await updateDoc(doc(db, 'users', currentUser.id), updates as Record<string, unknown>); } catch { /* offline */ }
+    }
+  };
+
+  const handleAddProperty = async (p: Property) => {
+    setProperties(prev => [...prev, p]);
+    try { await setDoc(doc(db, 'properties', p.id), p); } catch { /* offline */ }
+  };
+
+  const handleUpdateProperty = async (updated: Property) => {
     setProperties(prev => prev.map(p => p.id === updated.id ? updated : p));
+    try { await updateDoc(doc(db, 'properties', updated.id), { ...updated }); } catch { /* offline */ }
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen blueprint-bg flex items-center justify-center">
+        <Icon name="autorenew" size={36} className="animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
