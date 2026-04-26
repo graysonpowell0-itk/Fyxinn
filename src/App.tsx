@@ -3735,6 +3735,7 @@ const AdminPortal: React.FC<{
 }) => {
   const [view, setView] = useState<AdminView>('dashboard');
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [inventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
   const t = LANG_LABELS[lang];
   const openIssueCount = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length;
@@ -3762,6 +3763,8 @@ const AdminPortal: React.FC<{
     { view: 'settings', icon: 'settings', label: t.settings },
   ];
 
+  const mobileNavItems = navItems.slice(0, 4); // Dashboard, Issues, Calendar, Room Grid
+
   return (
     <div className="flex h-screen bg-surface overflow-hidden">
       <AdminSidebar view={view} setView={setView} onLogout={onLogout} property={activeProperty} properties={properties} activePropertyId={activePropertyId} onPropertyChange={id => { setActivePropertyId(id); setView('dashboard'); }} lang={lang} setLang={setLang} openIssueCount={openIssueCount} />
@@ -3787,19 +3790,26 @@ const AdminPortal: React.FC<{
             <div className="hidden md:block">
               <LangSwitcher lang={lang} onChange={setLang} />
             </div>
-            <button className="relative text-gray-600 hover:text-gray-300 transition-colors">
+            <button className="relative text-gray-600 hover:text-gray-300 transition-colors hidden md:block">
               <Icon name="notifications" size={18} />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500"></span>
             </button>
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <div className="w-6 h-6 rounded-full bg-surface-3 border border-border overflow-hidden flex items-center justify-center">
                 {user.avatar
                   ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                   : <Icon name="person" size={14} className="text-gray-500" />
                 }
               </div>
-              <span className="hidden sm:inline text-[11px] font-grotesk text-gray-400">{user.name.split(' ')[0]}</span>
+              <span className="text-[11px] font-grotesk text-gray-400">{user.name.split(' ')[0]}</span>
             </div>
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setShowMobileMenu(true)}
+              className="md:hidden text-gray-400 hover:text-gray-200 transition-colors p-1"
+            >
+              <Icon name="menu" size={22} />
+            </button>
           </div>
         </div>
 
@@ -3835,28 +3845,96 @@ const AdminPortal: React.FC<{
           <ReportIssueModal user={user} onSubmit={task => { onAddTask(task); setShowReportModal(false); }} onClose={() => setShowReportModal(false)} lang={lang} />
         )}
 
-        {/* Mobile bottom nav */}
+        {/* Mobile bottom nav — 4 primary views only */}
         <nav className="md:hidden h-14 border-t border-border bg-surface-2/90 flex items-center justify-around shrink-0">
-          {navItems.map(item => (
+          {mobileNavItems.map(item => (
             <button
               key={item.view}
               onClick={() => setView(item.view)}
-              className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-sm transition-all ${
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-sm transition-all ${
                 view === item.view ? 'text-primary' : 'text-gray-600 hover:text-gray-400'
               }`}
             >
-              <Icon name={item.icon} size={20} filled={view === item.view} />
+              <Icon name={item.icon} size={22} filled={view === item.view} />
               <span className="text-[8px] font-grotesk uppercase tracking-widest">{item.label}</span>
             </button>
           ))}
+          {/* More button opens drawer */}
           <button
-            onClick={onLogout}
-            className="flex flex-col items-center gap-0.5 px-1 py-1 rounded-sm transition-all text-gray-600 hover:text-red-400"
+            onClick={() => setShowMobileMenu(true)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-sm transition-all ${
+              ['inventory','schematics','settings'].includes(view) ? 'text-primary' : 'text-gray-600 hover:text-gray-400'
+            }`}
           >
-            <Icon name="logout" size={20} />
-            <span className="text-[8px] font-grotesk uppercase tracking-widest">{t.logout}</span>
+            <Icon name="more_horiz" size={22} />
+            <span className="text-[8px] font-grotesk uppercase tracking-widest">More</span>
           </button>
         </nav>
+
+        {/* Mobile slide-up drawer */}
+        {showMobileMenu && (
+          <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMobileMenu(false)} />
+            {/* Drawer */}
+            <div className="relative bg-surface-2 border-t border-border rounded-t-lg pb-safe">
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 bg-gray-700 rounded-full" />
+              </div>
+
+              {/* User info */}
+              <div className="px-5 py-3 border-b border-border flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-surface-3 border border-border overflow-hidden flex items-center justify-center shrink-0">
+                  {user.avatar
+                    ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                    : <Icon name="admin_panel_settings" size={18} className="text-primary" />
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-grotesk text-sm font-700 text-gray-100 truncate">{user.name}</p>
+                  <p className="text-[9px] font-grotesk text-primary uppercase tracking-widest">{user.role}</p>
+                </div>
+                <button onClick={() => setShowMobileMenu(false)} className="text-gray-600 hover:text-gray-300 transition-colors">
+                  <Icon name="close" size={20} />
+                </button>
+              </div>
+
+              {/* All nav items */}
+              <div className="px-3 py-3 space-y-0.5">
+                {navItems.map(item => (
+                  <button
+                    key={item.view}
+                    onClick={() => { setView(item.view); setShowMobileMenu(false); }}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-sm transition-all text-left ${
+                      view === item.view
+                        ? 'bg-primary/10 text-primary border border-primary/20'
+                        : 'text-gray-400 hover:text-gray-200 hover:bg-surface-3'
+                    }`}
+                  >
+                    <Icon name={item.icon} size={20} filled={view === item.view} />
+                    <span className="font-grotesk text-sm font-600">{item.label}</span>
+                    {item.view === 'issues' && openIssueCount > 0 && (
+                      <span className="ml-auto text-[9px] font-grotesk font-700 bg-red-500 text-white px-1.5 py-0.5 rounded-sm">{openIssueCount}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Language + Logout */}
+              <div className="px-5 py-3 border-t border-border flex items-center justify-between gap-4">
+                <LangSwitcher lang={lang} onChange={setLang} />
+                <button
+                  onClick={() => { setShowMobileMenu(false); onLogout(); }}
+                  className="flex items-center gap-2 text-red-400 hover:text-red-300 font-grotesk text-xs font-600 uppercase tracking-widest transition-colors"
+                >
+                  <Icon name="logout" size={16} />
+                  {t.logout}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
