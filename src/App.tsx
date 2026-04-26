@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   User, UserRole, Room, RoomStatus, Task, LogEntry,
-  PMChecklistState, InventoryItem, Property, HousekeepingStatus
+  PMChecklistState, InventoryItem, Property, HousekeepingStatus, ChatMessage
 } from './types';
 import { PM_CHECKLIST_DATA, MOCK_INVENTORY } from './constants';
 import { auth, db } from './firebase';
@@ -13,6 +13,7 @@ import {
 } from 'firebase/auth';
 import {
   collection, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
+  addDoc, query, orderBy,
 } from 'firebase/firestore';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -20,9 +21,10 @@ import logoVertical from './assets/logo-vertical.png';
 import logoHorizontal from './assets/Fxyinn_horizontal_no_bgr_brd.png';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Portal = 'select' | 'admin-login' | 'staff-login' | 'admin' | 'staff';
+type Portal = 'select' | 'admin-login' | 'staff-login' | 'general-staff-login' | 'admin' | 'staff' | 'general-staff';
 type AdminView = 'dashboard' | 'roomgrid' | 'inventory' | 'schematics' | 'settings' | 'issues' | 'calendar';
 type StaffView = 'dashboard' | 'myjobs' | 'checklist' | 'roomgrid' | 'inventory' | 'profile';
+type GeneralStaffView = 'report' | 'roomgrid' | 'logs' | 'schedule' | 'chat' | 'assistant';
 type Lang = 'EN' | 'ES' | 'HI';
 
 // ─── Icon helper ──────────────────────────────────────────────────────────────
@@ -397,6 +399,36 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     removeProperty: 'Remove Property',
     confirmRemove: 'Remove this property? This cannot be undone.',
     cannotRemoveLast: 'Cannot remove the only property',
+    // General Staff Portal
+    generalStaffPortal: 'General Staff Portal',
+    generalStaffAccess: 'FYXINN GENERAL STAFF ACCESS v1.0',
+    reportAnIssue: 'Report an Issue',
+    reportSubtitle: 'Tap to report a room or area issue',
+    issueSubmitted: 'Issue submitted successfully!',
+    onDutyTech: 'On-Duty Technician',
+    noTechOnDuty: 'No technician scheduled for this shift',
+    currentShift: 'Current Shift',
+    allTechs: 'All Technicians',
+    roomLogs: 'Room Logs',
+    filterByRoom: 'Filter by room...',
+    noLogs: 'No logs found',
+    aiAssistant: 'Repair Assistant',
+    assistantWelcome: 'Hi! I can help with simple repair tips. What issue are you facing?',
+    typeYourQuestion: 'Describe the issue...',
+    thinking: 'Thinking...',
+    chatWithTech: 'Chat with Tech',
+    selectTaskToChat: 'Select an issue to open chat',
+    noTasksToChat: 'No active issues to chat about',
+    myLang: 'My Language',
+    translateMessages: 'Auto-translate messages',
+    sendMessage: 'Send',
+    typeMessage: 'Type a message...',
+    translating: 'Translating...',
+    you: 'You',
+    tech: 'Tech',
+    issueReported: 'Issue Reported',
+    scheduleView: 'Schedule',
+    contactLabel: 'Contact',
   },
   ES: {
     // Auth
@@ -668,6 +700,36 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     removeProperty: 'Eliminar Propiedad',
     confirmRemove: '¿Eliminar esta propiedad? Esto no se puede deshacer.',
     cannotRemoveLast: 'No se puede eliminar la única propiedad',
+    // General Staff Portal
+    generalStaffPortal: 'Portal de Personal General',
+    generalStaffAccess: 'ACCESO PERSONAL GENERAL FYXINN v1.0',
+    reportAnIssue: 'Reportar un Problema',
+    reportSubtitle: 'Toca para reportar un problema en habitación o área',
+    issueSubmitted: '¡Problema enviado con éxito!',
+    onDutyTech: 'Técnico de Guardia',
+    noTechOnDuty: 'No hay técnico programado para este turno',
+    currentShift: 'Turno Actual',
+    allTechs: 'Todos los Técnicos',
+    roomLogs: 'Registros de Habitación',
+    filterByRoom: 'Filtrar por habitación...',
+    noLogs: 'No se encontraron registros',
+    aiAssistant: 'Asistente de Reparación',
+    assistantWelcome: '¡Hola! Puedo ayudar con consejos de reparación simple. ¿Cuál es el problema?',
+    typeYourQuestion: 'Describe el problema...',
+    thinking: 'Pensando...',
+    chatWithTech: 'Chat con Técnico',
+    selectTaskToChat: 'Selecciona un problema para abrir el chat',
+    noTasksToChat: 'No hay problemas activos para chatear',
+    myLang: 'Mi Idioma',
+    translateMessages: 'Auto-traducir mensajes',
+    sendMessage: 'Enviar',
+    typeMessage: 'Escribe un mensaje...',
+    translating: 'Traduciendo...',
+    you: 'Tú',
+    tech: 'Técnico',
+    issueReported: 'Problema Reportado',
+    scheduleView: 'Horario',
+    contactLabel: 'Contacto',
   },
   HI: {
     // Auth
@@ -939,6 +1001,36 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     removeProperty: 'संपत्ति हटाएं',
     confirmRemove: 'इस संपत्ति को हटाएं? यह पूर्ववत नहीं किया जा सकता।',
     cannotRemoveLast: 'एकमात्र संपत्ति को नहीं हटाया जा सकता',
+    // General Staff Portal
+    generalStaffPortal: 'सामान्य स्टाफ पोर्टल',
+    generalStaffAccess: 'FYXINN सामान्य स्टाफ एक्सेस v1.0',
+    reportAnIssue: 'समस्या रिपोर्ट करें',
+    reportSubtitle: 'कमरे या क्षेत्र की समस्या रिपोर्ट करने के लिए टैप करें',
+    issueSubmitted: 'समस्या सफलतापूर्वक सबमिट की गई!',
+    onDutyTech: 'ड्यूटी पर तकनीशियन',
+    noTechOnDuty: 'इस शिफ्ट के लिए कोई तकनीशियन निर्धारित नहीं',
+    currentShift: 'वर्तमान शिफ्ट',
+    allTechs: 'सभी तकनीशियन',
+    roomLogs: 'कमरे के लॉग',
+    filterByRoom: 'कमरे से फ़िल्टर करें...',
+    noLogs: 'कोई लॉग नहीं मिला',
+    aiAssistant: 'मरम्मत सहायक',
+    assistantWelcome: 'नमस्ते! मैं सरल मरम्मत युक्तियों में मदद कर सकता हूं। क्या समस्या है?',
+    typeYourQuestion: 'समस्या बताएं...',
+    thinking: 'सोच रहा हूं...',
+    chatWithTech: 'तकनीशियन से चैट',
+    selectTaskToChat: 'चैट खोलने के लिए कोई समस्या चुनें',
+    noTasksToChat: 'चैट के लिए कोई सक्रिय समस्या नहीं',
+    myLang: 'मेरी भाषा',
+    translateMessages: 'संदेशों का स्वतः अनुवाद',
+    sendMessage: 'भेजें',
+    typeMessage: 'संदेश लिखें...',
+    translating: 'अनुवाद हो रहा है...',
+    you: 'आप',
+    tech: 'तकनीशियन',
+    issueReported: 'समस्या रिपोर्ट की गई',
+    scheduleView: 'शेड्यूल',
+    contactLabel: 'संपर्क',
   },
 };
 
@@ -1021,7 +1113,7 @@ const PropertySelector: React.FC<{
 };
 
 // ─── Portal Select ────────────────────────────────────────────────────────────
-const PortalSelect: React.FC<{ onSelect: (p: 'admin-login' | 'staff-login') => void; lang: Lang; setLang: (l: Lang) => void }> = ({
+const PortalSelect: React.FC<{ onSelect: (p: 'admin-login' | 'staff-login' | 'general-staff-login') => void; lang: Lang; setLang: (l: Lang) => void }> = ({
   onSelect, lang, setLang
 }) => {
   const t = LANG_LABELS[lang];
@@ -1055,6 +1147,16 @@ const PortalSelect: React.FC<{ onSelect: (p: 'admin-login' | 'staff-login') => v
               {t.staffPortal}
             </span>
             <Icon name="chevron_right" size={16} className="text-gray-600 group-hover:text-secondary transition-colors" />
+          </button>
+          <button
+            onClick={() => onSelect('general-staff-login')}
+            className="w-full py-3 px-4 border border-orange-400/40 bg-surface-2 hover:bg-surface-3 hover:border-orange-400 text-orange-400 font-grotesk text-xs font-600 uppercase tracking-widest rounded-sm transition-all flex items-center justify-between group card-hover"
+          >
+            <span className="flex items-center gap-3">
+              <Icon name="groups" size={18} />
+              {t.generalStaffPortal}
+            </span>
+            <Icon name="chevron_right" size={16} className="text-gray-600 group-hover:text-orange-400 transition-colors" />
           </button>
         </div>
         <p className="text-[10px] text-gray-700 font-grotesk tracking-widest">{t.secureAccess}</p>
@@ -1459,6 +1561,124 @@ const StaffLogin: React.FC<{
         <p className="text-[10px] text-gray-700 font-grotesk tracking-widest text-center">
           {t.staffAccess}
         </p>
+      </div>
+    </div>
+  );
+};
+
+// ─── General Staff Login ──────────────────────────────────────────────────────
+const GeneralStaffLogin: React.FC<{
+  onLogin: (u: User) => void;
+  onBack: () => void;
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  properties: Property[];
+}> = ({ onLogin, onBack, lang, setLang, properties }) => {
+  const t = LANG_LABELS[lang];
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [operatorId, setOperatorId] = useState('');
+  const [pin, setPin] = useState('');
+  const [name, setName] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    if (mode === 'register') {
+      if (!name.trim()) { setError(t.nameRequired); setLoading(false); return; }
+      if (!operatorId.trim()) { setError(t.operatorRequired); setLoading(false); return; }
+      if (pin.length < 4) { setError(t.pinRequired); setLoading(false); return; }
+      if (pin !== confirmPin) { setError(t.pinMismatch); setLoading(false); return; }
+      if (properties.length > 0 && selectedPropertyIds.length === 0) {
+        setError(t.propertyRequired); setLoading(false); return;
+      }
+      try {
+        const staffEmail = operatorId.trim().toLowerCase();
+        const staffPassword = pin.padEnd(6, '0');
+        const cred = await createUserWithEmailAndPassword(auth, staffEmail, staffPassword);
+        const primaryId = selectedPropertyIds[0] || (properties[0]?.id ?? 'prop-1');
+        const newUser: User = {
+          id: cred.user.uid, name: name.trim(), role: UserRole.GENERAL_STAFF,
+          email: staffEmail, phone: '', propertyId: primaryId, propertyIds: selectedPropertyIds,
+        };
+        await setDoc(doc(db, 'users', cred.user.uid), newUser);
+        onLogin(newUser);
+      } catch (err: any) {
+        setError(err.message ?? 'Registration failed.');
+        setLoading(false);
+      }
+    } else {
+      try {
+        const staffEmail = operatorId.trim().toLowerCase();
+        const staffPassword = pin.padEnd(6, '0');
+        const cred = await signInWithEmailAndPassword(auth, staffEmail, staffPassword);
+        const snap = await getDoc(doc(db, 'users', cred.user.uid));
+        onLogin(snap.exists() ? (snap.data() as User) : { id: cred.user.uid, name: 'Staff', role: UserRole.GENERAL_STAFF, email: staffEmail, phone: '', propertyId: properties[0]?.id ?? 'prop-1' });
+      } catch (err: any) {
+        setError(err.message ?? t.invalidCredentials);
+        setLoading(false);
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen blueprint-bg flex flex-col items-center justify-center p-6">
+      <div className="absolute top-4 left-4">
+        <button onClick={onBack} className="flex items-center gap-2 text-xs text-gray-500 hover:text-orange-400 font-grotesk uppercase tracking-widest transition-colors">
+          <Icon name="arrow_back" size={16} />
+        </button>
+      </div>
+      <div className="absolute top-4 right-4">
+        <LangSwitcher lang={lang} onChange={setLang} />
+      </div>
+
+      <div className="w-full max-w-[280px] flex flex-col items-center gap-6">
+        <div className="border border-orange-400/30 rounded-sm p-4" style={{ boxShadow: '0 0 24px rgba(251,146,60,0.15)' }}>
+          <img src={logoVertical} alt="Fyxinn" className="w-32" style={{ filter: 'drop-shadow(0 0 16px rgba(251,146,60,0.4))', mixBlendMode: 'screen' }} />
+        </div>
+
+        <div className="text-center space-y-1">
+          <h1 className="font-grotesk text-sm font-700 text-gray-100 uppercase tracking-widest">{t.generalStaffPortal}</h1>
+          <p className="text-[9px] text-gray-600 font-grotesk tracking-widest">{t.generalStaffAccess}</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="w-full space-y-3">
+          {mode === 'register' && (
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.fullName}</label>
+              <input value={name} onChange={e => setName(e.target.value)} className="w-full bg-surface border border-border rounded-sm px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400" />
+            </div>
+          )}
+          <div>
+            <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.operatorId}</label>
+            <input type="email" value={operatorId} onChange={e => setOperatorId(e.target.value)} className="w-full bg-surface border border-border rounded-sm px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400" />
+          </div>
+          <div>
+            <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.pin}</label>
+            <input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="w-full bg-surface border border-border rounded-sm px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400 tracking-[0.5em]" />
+          </div>
+          {mode === 'register' && (
+            <>
+              <div>
+                <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.confirmPin}</label>
+                <input type="password" inputMode="numeric" maxLength={4} value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="w-full bg-surface border border-border rounded-sm px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400 tracking-[0.5em]" />
+              </div>
+              <PropertySelector properties={properties} selectedIds={selectedPropertyIds} onChange={setSelectedPropertyIds} lang={lang} />
+            </>
+          )}
+          {error && <p className="text-[10px] text-red-400 font-grotesk">{error}</p>}
+          <button type="submit" disabled={loading} className="w-full py-2.5 bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-black font-grotesk text-xs font-700 uppercase tracking-widest rounded-sm transition-colors">
+            {loading ? t.processing : t.staffLogin}
+          </button>
+        </form>
+
+        <button onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); }} className="text-[10px] text-gray-600 hover:text-orange-400 font-grotesk transition-colors">
+          {mode === 'login' ? t.newStaffAccount : t.haveAccount}
+        </button>
       </div>
     </div>
   );
@@ -4411,6 +4631,694 @@ const StaffProfile: React.FC<{
   );
 };
 
+// ─── General Staff: Report View ───────────────────────────────────────────────
+const GSReportView: React.FC<{
+  user: User; lang: Lang; onAddTask: (t: Task) => void;
+}> = ({ user, lang, onAddTask }) => {
+  const t = LANG_LABELS[lang];
+  const [description, setDescription] = useState('');
+  const [roomNumber, setRoomNumber] = useState('');
+  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handlePhoto = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = e => setPhotoUrl(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = () => {
+    if (!description.trim()) return;
+    onAddTask({
+      id: `task-${Date.now()}`,
+      description: description.trim(),
+      roomNumber: roomNumber.trim() || undefined,
+      status: 'PENDING',
+      reportedBy: user.name,
+      createdAt: new Date().toISOString(),
+      priority,
+      issuePhotoUrl: photoUrl ?? undefined,
+    });
+    setSubmitted(true);
+    setTimeout(() => {
+      setSubmitted(false);
+      setDescription(''); setRoomNumber(''); setPriority('MEDIUM'); setPhotoUrl(null);
+    }, 2500);
+  };
+
+  const priorityColor = (p: string) => p === 'HIGH' ? 'border-red-400 bg-red-400/10 text-red-400' : p === 'MEDIUM' ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-gray-500 bg-surface text-gray-400';
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+      {submitted ? (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/40 flex items-center justify-center">
+            <Icon name="check_circle" size={36} className="text-primary" />
+          </div>
+          <p className="font-grotesk text-sm font-700 text-primary uppercase tracking-widest">{t.issueSubmitted}</p>
+        </div>
+      ) : (
+        <>
+          {/* Hero CTA */}
+          <div className="bg-surface-2 border border-red-400/30 rounded-sm p-5 flex flex-col items-center gap-2 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-400/10 border border-red-400/30 flex items-center justify-center mb-1">
+              <Icon name="report_problem" size={28} className="text-red-400" />
+            </div>
+            <h2 className="font-grotesk text-base font-700 text-gray-100 uppercase tracking-widest">{t.reportAnIssue}</h2>
+            <p className="text-[10px] text-gray-500 font-grotesk">{t.reportSubtitle}</p>
+          </div>
+
+          {/* Form */}
+          <div className="space-y-3">
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.roomLocation}</label>
+              <input
+                type="text"
+                value={roomNumber}
+                onChange={e => setRoomNumber(e.target.value)}
+                placeholder="e.g. 402, Lobby, Pool"
+                className="w-full bg-surface border border-border rounded-sm px-3 py-2.5 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400"
+              />
+            </div>
+
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.descriptionLabel}</label>
+              <textarea
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Describe the issue in detail…"
+                rows={4}
+                className="w-full bg-surface border border-border rounded-sm px-3 py-2.5 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.priorityLabel}</label>
+              <div className="flex gap-2">
+                {(['LOW', 'MEDIUM', 'HIGH'] as const).map(p => (
+                  <button key={p} onClick={() => setPriority(p)}
+                    className={`flex-1 py-2 text-[10px] font-grotesk font-700 rounded-sm border transition-colors ${priority === p ? priorityColor(p) : 'border-border bg-surface text-gray-600 hover:border-gray-500'}`}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">{t.photoOptional}</label>
+              {photoUrl ? (
+                <div className="relative">
+                  <img src={photoUrl} alt="issue" className="w-full h-32 object-cover rounded-sm border border-border" />
+                  <button onClick={() => setPhotoUrl(null)} className="absolute top-1 right-1 bg-black/60 rounded-sm p-0.5 text-gray-300 hover:text-white">
+                    <Icon name="close" size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => fileRef.current?.click()} className="w-full h-20 border border-dashed border-border rounded-sm flex flex-col items-center justify-center gap-1 text-gray-600 hover:border-orange-400/50 hover:text-orange-400 transition-colors">
+                  <Icon name="add_a_photo" size={22} />
+                  <span className="text-[9px] font-grotesk uppercase tracking-widest">{t.camera}</span>
+                </button>
+              )}
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handlePhoto(e.target.files[0])} />
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              disabled={!description.trim()}
+              className="w-full py-3 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-grotesk text-sm font-700 uppercase tracking-widest rounded-sm transition-colors flex items-center justify-center gap-2"
+            >
+              <Icon name="send" size={16} />
+              {t.submitIssue}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ─── General Staff: Room Grid View ────────────────────────────────────────────
+const GSRoomGridView: React.FC<{ rooms: Room[]; lang: Lang }> = ({ rooms, lang }) => {
+  const t = LANG_LABELS[lang];
+  const [selected, setSelected] = useState<Room | null>(null);
+  const byFloor = Array.from(new Set(rooms.map(r => r.floor))).sort().map(floor => ({
+    floor, rooms: rooms.filter(r => r.floor === floor),
+  }));
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <h2 className="font-grotesk text-base font-700 text-gray-100 uppercase tracking-widest">{t.roomGrid}</h2>
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { label: t.ready, val: rooms.filter(r => r.status === RoomStatus.COMPLETED).length, color: 'text-primary' },
+          { label: t.maint, val: rooms.filter(r => r.status === RoomStatus.IN_PROGRESS).length, color: 'text-yellow-400' },
+          { label: t.critical, val: rooms.filter(r => r.status === RoomStatus.ISSUE_REPORTED).length, color: 'text-red-400' },
+          { label: t.occupancy, val: `${Math.round((rooms.filter(r => r.housekeepingStatus === 'Occupied' || r.housekeepingStatus === 'Stay Over').length / rooms.length) * 100)}%`, color: 'text-secondary' },
+        ].map(s => (
+          <div key={s.label} className="bg-surface-2 border border-border rounded-sm p-2 text-center">
+            <p className={`font-grotesk text-xl font-700 ${s.color}`}>{s.val}</p>
+            <p className="text-[8px] font-grotesk text-gray-600 uppercase tracking-widest mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {byFloor.map(({ floor, rooms: fr }) => (
+        <div key={floor} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-grotesk text-gray-600 uppercase tracking-widest">{t.floor} {String(floor).padStart(2, '0')}</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+          <div className="grid grid-cols-5 gap-1.5">
+            {fr.map(room => (
+              <button key={room.id} onClick={() => setSelected(room === selected ? null : room)}
+                className={`bg-surface-2 border rounded-sm p-2 flex flex-col items-center gap-1 transition-all ${selected?.id === room.id ? 'border-orange-400/60' : 'border-border hover:border-gray-600'}`}>
+                <span className={`w-2 h-2 rounded-full ${statusColor(room.status)}`} />
+                <span className="text-[10px] font-grotesk font-600 text-gray-300">{room.number}</span>
+                <span className={`text-[8px] font-grotesk ${hkColor(room.housekeepingStatus)} text-center leading-tight`}>
+                  {room.housekeepingStatus?.split(' ')[0] || t.ready}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {selected && (
+        <div className="bg-surface-2 border border-orange-400/30 rounded-sm p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-grotesk text-sm font-700 text-gray-100">{t.room} {selected.number}</span>
+            <button onClick={() => setSelected(null)}><Icon name="close" size={16} className="text-gray-600" /></button>
+          </div>
+          <div className="flex gap-3 text-[10px] font-grotesk">
+            <span className={`${hkColor(selected.housekeepingStatus)}`}>{selected.housekeepingStatus}</span>
+            <span className="text-gray-600">·</span>
+            <span className="text-gray-400">{selected.currentTasks.length} {t.tasks}</span>
+          </div>
+          {selected.currentTasks.length > 0 && (
+            <div className="space-y-1 pt-1">
+              {selected.currentTasks.map(task => (
+                <div key={task.id} className="flex items-start gap-2 bg-surface border border-border rounded-sm p-2">
+                  <Icon name="build" size={12} className="text-yellow-400 mt-0.5 shrink-0" />
+                  <span className="text-[10px] font-grotesk text-gray-300">{task.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── General Staff: Logs View ─────────────────────────────────────────────────
+const GSLogsView: React.FC<{ tasks: Task[]; lang: Lang }> = ({ tasks, lang }) => {
+  const t = LANG_LABELS[lang];
+  const [filter, setFilter] = useState('');
+
+  const filtered = tasks.filter(tk =>
+    !filter.trim() || tk.roomNumber?.toLowerCase().includes(filter.toLowerCase()) || tk.description.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  const statusIcon = (s: string) => {
+    if (s === 'COMPLETED') return <Icon name="check_circle" size={14} className="text-primary shrink-0" />;
+    if (s === 'IN_PROGRESS') return <Icon name="autorenew" size={14} className="text-yellow-400 shrink-0" />;
+    if (s === 'AWAITING_REVIEW') return <Icon name="hourglass_top" size={14} className="text-secondary shrink-0" />;
+    return <Icon name="radio_button_unchecked" size={14} className="text-gray-500 shrink-0" />;
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <h2 className="font-grotesk text-base font-700 text-gray-100 uppercase tracking-widest">{t.roomLogs}</h2>
+      <div className="relative">
+        <Icon name="search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+        <input
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          placeholder={t.filterByRoom}
+          className="w-full bg-surface border border-border rounded-sm pl-8 pr-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400"
+        />
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-12 text-gray-600">
+          <Icon name="history" size={32} />
+          <p className="text-[10px] font-grotesk uppercase tracking-widest">{t.noLogs}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(task => (
+            <div key={task.id} className="bg-surface-2 border border-border rounded-sm p-3 space-y-1.5">
+              <div className="flex items-start gap-2">
+                {statusIcon(task.status)}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-grotesk text-gray-200 leading-snug">{task.description}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {task.roomNumber && (
+                      <span className="text-[9px] font-grotesk text-orange-400 bg-orange-400/10 border border-orange-400/20 px-1.5 py-0.5 rounded-sm">{t.room} {task.roomNumber}</span>
+                    )}
+                    <span className={`text-[9px] font-grotesk uppercase ${task.priority === 'HIGH' ? 'text-red-400' : task.priority === 'MEDIUM' ? 'text-yellow-400' : 'text-gray-500'}`}>{task.priority}</span>
+                    <span className="text-[9px] font-grotesk text-gray-600">{t.by} {task.reportedBy}</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-[8px] font-grotesk text-gray-700 pl-5">{new Date(task.createdAt).toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── General Staff: Schedule View ─────────────────────────────────────────────
+const GSScheduleView: React.FC<{ lang: Lang; propertyId: string }> = ({ lang, propertyId }) => {
+  const t = LANG_LABELS[lang];
+  const [techs, setTechs] = useState<User[]>([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'users'), snap => {
+      const all = snap.docs.map(d => d.data() as User);
+      setTechs(all.filter(u => u.role === UserRole.MAINTENANCE && (u.propertyId === propertyId || u.propertyIds?.includes(propertyId))));
+    });
+    return () => unsub();
+  }, [propertyId]);
+
+  const hour = new Date().getHours();
+  const shiftLabel = hour >= 6 && hour < 14 ? 'Morning (6AM–2PM)' : hour >= 14 && hour < 22 ? 'Afternoon (2PM–10PM)' : 'Night (10PM–6AM)';
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <h2 className="font-grotesk text-base font-700 text-gray-100 uppercase tracking-widest">{t.scheduleView}</h2>
+
+      <div className="bg-surface-2 border border-orange-400/20 rounded-sm p-3 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-orange-400/10 border border-orange-400/30 flex items-center justify-center shrink-0">
+          <Icon name="schedule" size={16} className="text-orange-400" />
+        </div>
+        <div>
+          <p className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest">{t.currentShift}</p>
+          <p className="text-sm font-grotesk font-700 text-gray-100">{shiftLabel}</p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest">{t.onDutyTech}</p>
+        {techs.length === 0 ? (
+          <div className="bg-surface-2 border border-border rounded-sm p-6 flex flex-col items-center gap-2 text-gray-600">
+            <Icon name="engineering" size={28} />
+            <p className="text-[10px] font-grotesk uppercase tracking-widest">{t.noTechOnDuty}</p>
+          </div>
+        ) : (
+          techs.map(tech => (
+            <div key={tech.id} className="bg-surface-2 border border-border rounded-sm p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-secondary/10 border border-secondary/30 flex items-center justify-center shrink-0">
+                  {tech.avatar ? (
+                    <img src={tech.avatar} alt={tech.name} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <Icon name="engineering" size={20} className="text-secondary" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-grotesk text-sm font-700 text-gray-100">{tech.name}</p>
+                  <p className="text-[9px] font-grotesk text-secondary uppercase tracking-widest">{tech.role}</p>
+                </div>
+                <span className="ml-auto flex items-center gap-1 text-[9px] font-grotesk text-primary">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
+                  {t.online}
+                </span>
+              </div>
+              <div className="space-y-1.5 border-t border-border pt-2">
+                <p className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest">{t.contactLabel}</p>
+                {tech.phone && (
+                  <a href={`tel:${tech.phone}`} className="flex items-center gap-2 text-[11px] font-grotesk text-secondary hover:text-secondary/80 transition-colors">
+                    <Icon name="phone" size={13} />
+                    {tech.phone}
+                  </a>
+                )}
+                {tech.email && (
+                  <a href={`mailto:${tech.email}`} className="flex items-center gap-2 text-[11px] font-grotesk text-gray-400 hover:text-gray-200 transition-colors">
+                    <Icon name="mail" size={13} />
+                    {tech.email}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── General Staff: Chat View ─────────────────────────────────────────────────
+const LANG_CODES: Record<Lang, string> = { EN: 'en', ES: 'es', HI: 'hi' };
+
+const translateText = async (text: string, fromLang: string, toLang: string): Promise<string> => {
+  if (fromLang === toLang) return text;
+  try {
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${fromLang}|${toLang}`);
+    const data = await res.json();
+    return data.responseData?.translatedText || text;
+  } catch {
+    return text;
+  }
+};
+
+const GSChatView: React.FC<{ user: User; lang: Lang; tasks: Task[] }> = ({ user, lang, tasks }) => {
+  const t = LANG_LABELS[lang];
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [chatLang, setChatLang] = useState<Lang>(lang);
+  const [autoTranslate, setAutoTranslate] = useState(true);
+  const [translating, setTranslating] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const activeTasks = tasks.filter(tk => tk.status !== 'COMPLETED');
+
+  useEffect(() => {
+    if (!selectedTaskId) return;
+    const unsub = onSnapshot(collection(db, 'messages', selectedTaskId, 'thread'), snap => {
+      const msgs = snap.docs.map(d => d.data() as ChatMessage).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      setMessages(msgs);
+    });
+    return () => unsub();
+  }, [selectedTaskId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim() || !selectedTaskId) return;
+    const msg: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      taskId: selectedTaskId,
+      senderId: user.id,
+      senderName: user.name,
+      senderRole: user.role,
+      content: input.trim(),
+      originalContent: input.trim(),
+      originalLang: LANG_CODES[chatLang],
+      timestamp: new Date().toISOString(),
+    };
+    setInput('');
+    try {
+      await setDoc(doc(db, 'messages', selectedTaskId, 'thread', msg.id), msg);
+    } catch {
+      setMessages(prev => [...prev, msg]);
+    }
+  };
+
+  const displayContent = useCallback(async (msg: ChatMessage): Promise<string> => {
+    if (!autoTranslate || msg.originalLang === LANG_CODES[chatLang]) return msg.content;
+    setTranslating(true);
+    const translated = await translateText(msg.content, msg.originalLang, LANG_CODES[chatLang]);
+    setTranslating(false);
+    return translated;
+  }, [autoTranslate, chatLang]);
+
+  const [displayedMessages, setDisplayedMessages] = useState<{ id: string; content: string }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(messages.map(async m => ({ id: m.id, content: await displayContent(m) }))).then(result => {
+      if (!cancelled) setDisplayedMessages(result);
+    });
+    return () => { cancelled = true; };
+  }, [messages, displayContent]);
+
+  if (!selectedTaskId) {
+    return (
+      <div className="flex-1 flex flex-col p-4 gap-3">
+        <h2 className="font-grotesk text-base font-700 text-gray-100 uppercase tracking-widest">{t.chatWithTech}</h2>
+        {activeTasks.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-gray-600">
+            <Icon name="chat_bubble_outline" size={32} />
+            <p className="text-[10px] font-grotesk uppercase tracking-widest">{t.noTasksToChat}</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest">{t.selectTaskToChat}</p>
+            {activeTasks.map(tk => (
+              <button key={tk.id} onClick={() => setSelectedTaskId(tk.id)}
+                className="w-full bg-surface-2 border border-border hover:border-orange-400/40 rounded-sm p-3 text-left space-y-1 transition-colors">
+                <div className="flex items-start gap-2">
+                  <Icon name="report_problem" size={14} className="text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-[11px] font-grotesk text-gray-200 leading-snug">{tk.description}</p>
+                </div>
+                {tk.roomNumber && <p className="text-[9px] font-grotesk text-orange-400 pl-5">{t.room} {tk.roomNumber}</p>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const task = tasks.find(tk => tk.id === selectedTaskId);
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Chat header */}
+      <div className="shrink-0 border-b border-border bg-surface-2/80 px-4 py-2.5 space-y-2">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setSelectedTaskId(null)} className="text-gray-500 hover:text-gray-300 transition-colors">
+            <Icon name="arrow_back" size={16} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-grotesk text-gray-200 truncate">{task?.description}</p>
+            {task?.roomNumber && <p className="text-[9px] font-grotesk text-orange-400">{t.room} {task.roomNumber}</p>}
+          </div>
+        </div>
+        {/* Language controls */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest">{t.myLang}</span>
+            <div className="flex items-center gap-0.5 bg-surface-3 border border-border rounded-sm p-0.5">
+              {(['EN', 'ES', 'HI'] as Lang[]).map(l => (
+                <button key={l} onClick={() => setChatLang(l)}
+                  className={`px-1.5 py-0.5 text-[9px] font-grotesk font-600 rounded-sm transition-all ${chatLang === l ? 'bg-orange-500 text-black' : 'text-gray-500 hover:text-gray-300'}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button onClick={() => setAutoTranslate(p => !p)}
+            className={`flex items-center gap-1 text-[9px] font-grotesk uppercase tracking-widest transition-colors ${autoTranslate ? 'text-orange-400' : 'text-gray-600'}`}>
+            <Icon name="translate" size={12} />
+            {t.translateMessages}
+          </button>
+          {translating && <span className="text-[9px] font-grotesk text-gray-600 italic">{t.translating}</span>}
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {displayedMessages.map((dm, i) => {
+          const msg = messages[i];
+          if (!msg) return null;
+          const isMe = msg.senderId === user.id;
+          return (
+            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[78%] space-y-0.5`}>
+                <p className={`text-[9px] font-grotesk text-gray-600 ${isMe ? 'text-right' : ''}`}>
+                  {isMe ? t.you : `${msg.senderName} · ${t.tech}`}
+                </p>
+                <div className={`px-3 py-2 rounded-sm text-[11px] font-grotesk leading-snug ${isMe ? 'bg-orange-500/20 border border-orange-500/30 text-gray-100 rounded-tr-none' : 'bg-surface-2 border border-border text-gray-200 rounded-tl-none'}`}>
+                  {dm.content}
+                </div>
+                <p className={`text-[8px] font-grotesk text-gray-700 ${isMe ? 'text-right' : ''}`}>
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="shrink-0 border-t border-border bg-surface-2/80 p-3 flex gap-2">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+          placeholder={t.typeMessage}
+          className="flex-1 bg-surface border border-border rounded-sm px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-orange-400"
+        />
+        <button onClick={sendMessage} disabled={!input.trim()}
+          className="px-3 py-2 bg-orange-500 hover:bg-orange-400 disabled:opacity-40 text-black rounded-sm transition-colors">
+          <Icon name="send" size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── General Staff: AI Assistant View ────────────────────────────────────────
+type AssistantMsg = { role: 'user' | 'assistant'; content: string };
+
+const REPAIR_KB: { keywords: string[]; response: string }[] = [
+  { keywords: ['toilet', 'running', 'flush', 'leaking toilet'], response: 'Check if the flapper valve is sealing properly — lift the tank lid and press the flapper down. If the toilet still runs, the fill valve may need adjustment. Turn the water supply off (valve behind toilet) and notify maintenance.' },
+  { keywords: ['faucet', 'drip', 'leak', 'dripping'], response: 'Turn off the water supply valves under the sink. Place a towel under the pipes to catch drips. Do not attempt to disassemble faucet internals — notify maintenance with the room number and which faucet (hot/cold).' },
+  { keywords: ['light', 'bulb', 'flicker', 'not working', 'lamp'], response: 'First check if the circuit breaker for that room tripped. Try replacing the bulb — use the same wattage/type. If the issue persists after bulb swap, it may be a wiring issue; notify maintenance.' },
+  { keywords: ['ac', 'hvac', 'air conditioning', 'heat', 'heating', 'cold', 'hot room'], response: 'Check the thermostat setting — ensure it\'s in the correct mode (COOL/HEAT) and the fan is ON or AUTO. Replace the filter if it looks clogged (check vent covers). If unit makes loud noises or blows no air, shut it off and notify maintenance.' },
+  { keywords: ['outlet', 'plug', 'socket', 'power', 'no power'], response: 'Check if there is a GFCI outlet nearby (usually in bathrooms) with a tripped RESET button — press the center button. Also check the room\'s circuit breaker. If neither resolves it, tag the outlet and notify maintenance.' },
+  { keywords: ['smoke', 'detector', 'alarm', 'beeping'], response: 'A slow single beep usually means a low battery. Replace the 9V battery if accessible. If the alarm sounds continuously without visible smoke, evacuate the area and call the front desk immediately.' },
+  { keywords: ['door', 'lock', 'stuck', 'key', 'card'], response: 'For electronic locks: remove and re-insert the key card slowly. Check the battery indicator light on the lock panel. If the door is physically stuck, do not force it — notify maintenance and the front desk.' },
+  { keywords: ['clog', 'drain', 'slow', 'backup', 'sink', 'shower drain'], response: 'Remove the drain cover and clear visible hair/debris with gloves. Pour hot (not boiling) water down the drain. Do not use harsh chemical drain cleaners. If drain is fully blocked, notify maintenance.' },
+  { keywords: ['window', 'blind', 'curtain', 'shade'], response: 'For stuck blinds: gently pull the cord straight down before tilting. For windows that won\'t close: check if the track is clear of debris. Do not force window mechanisms — notify maintenance if the window cannot be secured.' },
+];
+
+const getAssistantResponse = (input: string): string => {
+  const lower = input.toLowerCase();
+  for (const kb of REPAIR_KB) {
+    if (kb.keywords.some(k => lower.includes(k))) return kb.response;
+  }
+  return 'I don\'t have a specific tip for that issue. Please describe it in more detail, or use the Report Issue tab so maintenance can respond directly.';
+};
+
+const GSAssistantView: React.FC<{ lang: Lang }> = ({ lang }) => {
+  const t = LANG_LABELS[lang];
+  const [messages, setMessages] = useState<AssistantMsg[]>([
+    { role: 'assistant', content: t.assistantWelcome },
+  ]);
+  const [input, setInput] = useState('');
+  const [thinking, setThinking] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const send = async () => {
+    if (!input.trim()) return;
+    const userMsg = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setThinking(true);
+    await new Promise(r => setTimeout(r, 600));
+    const reply = getAssistantResponse(userMsg);
+    setThinking(false);
+    setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+  };
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="shrink-0 border-b border-border bg-surface-2/80 px-4 py-2.5 flex items-center gap-2">
+        <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
+          <Icon name="smart_toy" size={14} className="text-primary" />
+        </div>
+        <div>
+          <p className="text-[11px] font-grotesk font-700 text-gray-100">{t.aiAssistant}</p>
+          <p className="text-[8px] font-grotesk text-primary uppercase tracking-widest">{t.online}</p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            {msg.role === 'assistant' && (
+              <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+                <Icon name="smart_toy" size={12} className="text-primary" />
+              </div>
+            )}
+            <div className={`max-w-[80%] px-3 py-2 rounded-sm text-[11px] font-grotesk leading-relaxed ${msg.role === 'user' ? 'bg-orange-500/20 border border-orange-500/30 text-gray-100 rounded-tr-none' : 'bg-surface-2 border border-border text-gray-200 rounded-tl-none'}`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {thinking && (
+          <div className="flex justify-start items-center gap-2">
+            <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0">
+              <Icon name="smart_toy" size={12} className="text-primary" />
+            </div>
+            <div className="bg-surface-2 border border-border rounded-sm rounded-tl-none px-3 py-2 flex gap-1">
+              {[0,1,2].map(i => (
+                <span key={i} className="w-1.5 h-1.5 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+              ))}
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      {/* Input */}
+      <div className="shrink-0 border-t border-border bg-surface-2/80 p-3 flex gap-2">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+          placeholder={t.typeYourQuestion}
+          className="flex-1 bg-surface border border-border rounded-sm px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-primary"
+        />
+        <button onClick={send} disabled={!input.trim() || thinking}
+          className="px-3 py-2 bg-primary hover:bg-primary/80 disabled:opacity-40 text-black rounded-sm transition-colors">
+          <Icon name="send" size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ─── General Staff Portal ─────────────────────────────────────────────────────
+const GeneralStaffPortal: React.FC<{
+  user: User; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void;
+  tasks: Task[]; onAddTask: (t: Task) => void;
+}> = ({ user, onLogout, lang, setLang, tasks, onAddTask }) => {
+  const [view, setView] = useState<GeneralStaffView>('report');
+  const [rooms] = useState<Room[]>(() => generateRooms(MOCK_PROPERTY));
+  const t = LANG_LABELS[lang];
+
+  const navItems: { view: GeneralStaffView; icon: string; label: string }[] = [
+    { view: 'report', icon: 'report_problem', label: t.reportAnIssue.split(' ')[0] },
+    { view: 'roomgrid', icon: 'meeting_room', label: t.roomGrid },
+    { view: 'logs', icon: 'history', label: t.roomLogs.split(' ')[0] },
+    { view: 'schedule', icon: 'engineering', label: t.scheduleView },
+    { view: 'chat', icon: 'chat', label: t.chatWithTech.split(' ')[0] },
+    { view: 'assistant', icon: 'smart_toy', label: t.aiAssistant.split(' ')[0] },
+  ];
+
+  return (
+    <div className="flex flex-col h-screen bg-surface overflow-hidden blueprint-bg">
+      {/* Header */}
+      <div className="h-12 border-b border-border bg-surface-2/80 flex items-center justify-between px-4 shrink-0">
+        <img src={logoHorizontal} alt="Fyxinn" className="h-7 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(251,146,60,0.3))', mixBlendMode: 'screen' }} />
+        <div className="flex items-center gap-2">
+          <span className="hidden sm:block text-[9px] font-grotesk text-orange-400 border border-orange-400/30 bg-orange-400/5 px-2 py-0.5 rounded-sm uppercase tracking-widest">{user.role}</span>
+          <LangSwitcher lang={lang} onChange={setLang} />
+          <button onClick={onLogout} className="text-gray-600 hover:text-gray-300 transition-colors ml-1">
+            <Icon name="logout" size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        {view === 'report' && <GSReportView user={user} lang={lang} onAddTask={onAddTask} />}
+        {view === 'roomgrid' && <GSRoomGridView rooms={rooms} lang={lang} />}
+        {view === 'logs' && <GSLogsView tasks={tasks} lang={lang} />}
+        {view === 'schedule' && <GSScheduleView lang={lang} propertyId={user.propertyId} />}
+        {view === 'chat' && <GSChatView user={user} lang={lang} tasks={tasks} />}
+        {view === 'assistant' && <GSAssistantView lang={lang} />}
+      </div>
+
+      {/* Bottom nav */}
+      <nav className="h-14 border-t border-border bg-surface-2/90 flex items-center justify-around shrink-0">
+        {navItems.map(item => (
+          <button key={item.view} onClick={() => setView(item.view)}
+            className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-sm transition-all ${view === item.view ? 'text-orange-400' : 'text-gray-600 hover:text-gray-400'}`}>
+            <Icon name={item.icon} size={20} filled={view === item.view} />
+            <span className="text-[7px] font-grotesk uppercase tracking-widest">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+};
+
 // ─── Staff Portal ─────────────────────────────────────────────────────────────
 const StaffPortal: React.FC<{
   user: User; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void;
@@ -4503,7 +5411,7 @@ export default function App() {
         if (snap.exists()) {
           const userData = snap.data() as User;
           setCurrentUser(userData);
-          setPortal(userData.role === UserRole.ADMIN ? 'admin' : 'staff');
+          setPortal(userData.role === UserRole.ADMIN ? 'admin' : userData.role === UserRole.GENERAL_STAFF ? 'general-staff' : 'staff');
         }
       }
       setAuthLoading(false);
@@ -4532,6 +5440,7 @@ export default function App() {
 
   const handleAdminLogin = (user: User) => { setCurrentUser(user); setPortal('admin'); };
   const handleStaffLogin = (user: User) => { setCurrentUser(user); setPortal('staff'); };
+  const handleGeneralStaffLogin = (user: User) => { setCurrentUser(user); setPortal('general-staff'); };
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -4588,6 +5497,9 @@ export default function App() {
       {portal === 'staff-login' && (
         <StaffLogin onLogin={handleStaffLogin} onBack={() => setPortal('select')} lang={lang} setLang={setLang} properties={properties} />
       )}
+      {portal === 'general-staff-login' && (
+        <GeneralStaffLogin onLogin={handleGeneralStaffLogin} onBack={() => setPortal('select')} lang={lang} setLang={setLang} properties={properties} />
+      )}
       {portal === 'admin' && currentUser && (
         <AdminPortal
           user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang}
@@ -4597,6 +5509,9 @@ export default function App() {
       )}
       {portal === 'staff' && currentUser && (
         <StaffPortal user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onUpdateUser={handleUpdateUser} />
+      )}
+      {portal === 'general-staff' && currentUser && (
+        <GeneralStaffPortal user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} tasks={tasks} onAddTask={handleAddTask} />
       )}
     </>
   );

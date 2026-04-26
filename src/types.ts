@@ -3,6 +3,7 @@ export enum UserRole {
   ADMIN = 'Admin',
   MAINTENANCE = 'Maintenance',
   STAFF = 'Staff',
+  GENERAL_STAFF = 'General Staff',
 }
 
 export enum RoomStatus {
@@ -106,6 +107,18 @@ export interface CalendarEvent {
   assignedTo?: string;
   recurrence?: 'NONE' | 'WEEKLY' | 'MONTHLY';
   propertyId: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  taskId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  content: string;
+  originalContent: string;
+  originalLang: string;
+  timestamp: string;
 }
 
 export interface InventoryItem {
