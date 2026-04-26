@@ -21,8 +21,8 @@
         theme: {
           extend: {
             colors: {
-              primary: '#a3ff6d',
-              'primary-dark': '#6ee621',
+              primary: '#58e21f',
+              'primary-dark': '#3eb512',
               secondary: '#00c1fd',
               surface: '#0A0A0A',
               'surface-2': '#131313',
@@ -64,21 +64,21 @@
       .blueprint-bg {
         background-color: #0A0A0A;
         background-image:
-          linear-gradient(rgba(163,255,109,0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(163,255,109,0.04) 1px, transparent 1px),
-          linear-gradient(rgba(163,255,109,0.02) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(163,255,109,0.02) 1px, transparent 1px);
+          linear-gradient(rgba(88,226,31,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(88,226,31,0.04) 1px, transparent 1px),
+          linear-gradient(rgba(88,226,31,0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(88,226,31,0.02) 1px, transparent 1px);
         background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
         background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
       }
 
       /* Signature gradient */
       .sig-gradient {
-        background: linear-gradient(135deg, #6ee621 0%, #00c1fd 100%);
+        background: linear-gradient(135deg, #3eb512 0%, #00c1fd 100%);
       }
 
       .sig-gradient-text {
-        background: linear-gradient(135deg, #6ee621 0%, #00c1fd 100%);
+        background: linear-gradient(135deg, #3eb512 0%, #00c1fd 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -86,13 +86,13 @@
 
       /* Glow effects */
       .glow-green {
-        box-shadow: 0 0 20px rgba(163,255,109,0.3), 0 0 40px rgba(163,255,109,0.1);
+        box-shadow: 0 0 20px rgba(88,226,31,0.3), 0 0 40px rgba(88,226,31,0.1);
       }
       .glow-cyan {
         box-shadow: 0 0 20px rgba(0,193,253,0.3), 0 0 40px rgba(0,193,253,0.1);
       }
       .text-glow-green {
-        text-shadow: 0 0 10px rgba(163,255,109,0.5);
+        text-shadow: 0 0 10px rgba(88,226,31,0.5);
       }
 
       /* Material Symbols */
@@ -114,7 +114,7 @@
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: #131313; }
       ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-      ::-webkit-scrollbar-thumb:hover { background: #a3ff6d; }
+      ::-webkit-scrollbar-thumb:hover { background: #58e21f; }
 
       /* Input underline style */
       .input-underline {
@@ -130,7 +130,7 @@
         font-size: 0.875rem;
         transition: border-color 0.2s;
       }
-      .input-underline:focus { border-bottom-color: #a3ff6d; }
+      .input-underline:focus { border-bottom-color: #58e21f; }
       .input-underline::placeholder { color: #4a4a4a; }
 
       /* Input box style (admin) */
@@ -147,13 +147,13 @@
         transition: border-color 0.2s, box-shadow 0.2s;
       }
       .input-box:focus {
-        border-color: #a3ff6d;
-        box-shadow: 0 0 0 1px rgba(163,255,109,0.2);
+        border-color: #58e21f;
+        box-shadow: 0 0 0 1px rgba(88,226,31,0.2);
       }
       .input-box::placeholder { color: #4a4a4a; }
 
       /* Status dots */
-      .dot-green { background: #a3ff6d; box-shadow: 0 0 6px #a3ff6d; }
+      .dot-green { background: #58e21f; box-shadow: 0 0 6px #58e21f; }
       .dot-red { background: #ff4444; box-shadow: 0 0 6px #ff4444; }
       .dot-yellow { background: #ffd600; box-shadow: 0 0 6px #ffd600; }
       .dot-cyan { background: #00c1fd; box-shadow: 0 0 6px #00c1fd; }
@@ -187,14 +187,14 @@
         border-left: 2px solid transparent;
       }
       .sidebar-nav-item:hover {
-        color: #a3ff6d;
-        background: rgba(163,255,109,0.05);
-        border-left-color: rgba(163,255,109,0.3);
+        color: #58e21f;
+        background: rgba(88,226,31,0.05);
+        border-left-color: rgba(88,226,31,0.3);
       }
       .sidebar-nav-item.active {
-        color: #a3ff6d;
-        background: rgba(163,255,109,0.08);
-        border-left-color: #a3ff6d;
+        color: #58e21f;
+        background: rgba(88,226,31,0.08);
+        border-left-color: #58e21f;
       }
 
       /* Custom checkbox */
@@ -209,14 +209,14 @@
         transition: all 0.15s;
       }
       .pm-checkbox.checked {
-        background: #a3ff6d;
-        border-color: #a3ff6d;
+        background: #58e21f;
+        border-color: #58e21f;
       }
 
       /* Animate pulse */
       @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 10px rgba(163,255,109,0.3); }
-        50% { box-shadow: 0 0 20px rgba(163,255,109,0.6); }
+        0%, 100% { box-shadow: 0 0 10px rgba(88,226,31,0.3); }
+        50% { box-shadow: 0 0 20px rgba(88,226,31,0.6); }
       }
       .animate-glow { animation: pulse-glow 2s ease-in-out infinite; }
 
@@ -226,10 +226,10 @@
       }
       .card-hover:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 20px rgba(163,255,109,0.1);
+        box-shadow: 0 4px 20px rgba(88,226,31,0.1);
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-BPWR_Ifl.js"></script>
+    <script type="module" crossorigin src="/assets/index-CbI_cTBW.js"></script>
   </head>
   <body>
     <div id="root"></div>

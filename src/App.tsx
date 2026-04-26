@@ -79,6 +79,11 @@ const MOCK_USERS: User[] = [
   { id: 'u3', name: 'Marcus Webb', role: UserRole.STAFF, email: 'marcus@fyxinn.io', phone: '555-0102', propertyId: 'prop-1' },
 ];
 
+const PRESET_AMENITIES = [
+  'Lobby', 'Gym', 'Pool Area', 'Restaurant', 'Conference Room',
+  'Business Center', 'Spa', 'Parking', 'Laundry Room', 'Bar & Lounge', 'Rooftop Terrace',
+];
+
 // ─── Status helpers ───────────────────────────────────────────────────────────
 const statusColor = (s: RoomStatus) => {
   switch (s) {
@@ -355,6 +360,29 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     csvScheduleFormat: 'CSV Format: date, title, type, description, assignedTo',
     parseSchedule: 'Import Events',
     eventsImported: 'events found',
+    // Property Management
+    addProperty: 'Add New Property',
+    editProperty: 'Edit Property',
+    propertyName: 'Property Name',
+    propertyAddress: 'Property Address',
+    propertyPhone: 'Property Phone',
+    floorCount: 'Number of Floors',
+    roomNumbering: 'Room Numbering',
+    floorLabel: 'Floor',
+    commonAreasAmenities: 'Common Areas & Amenities',
+    uploadSchematics: 'Upload Schematics',
+    companyLogo: 'Company Logo',
+    properties: 'Properties',
+    noProperties: 'No properties added yet',
+    saveProperty: 'Save Property',
+    propertyCreated: 'Property Created!',
+    propertyNameRequired: 'Property name is required.',
+    propertyRequired: 'Please select at least one property.',
+    selectPropertyLabel: 'Working Property',
+    selectPropertyHint: 'Select the property or properties you work at',
+    customAmenity: 'Add custom area...',
+    addAmenity: 'Add',
+    roomsLabel: 'rooms',
   },
   ES: {
     // Auth
@@ -599,6 +627,29 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     csvScheduleFormat: 'Formato CSV: fecha, título, tipo, descripción, asignado',
     parseSchedule: 'Importar Eventos',
     eventsImported: 'eventos encontrados',
+    // Property Management
+    addProperty: 'Agregar Nueva Propiedad',
+    editProperty: 'Editar Propiedad',
+    propertyName: 'Nombre de la Propiedad',
+    propertyAddress: 'Dirección de la Propiedad',
+    propertyPhone: 'Teléfono de la Propiedad',
+    floorCount: 'Número de Pisos',
+    roomNumbering: 'Numeración de Habitaciones',
+    floorLabel: 'Piso',
+    commonAreasAmenities: 'Áreas Comunes y Comodidades',
+    uploadSchematics: 'Subir Esquemas',
+    companyLogo: 'Logo de la Empresa',
+    properties: 'Propiedades',
+    noProperties: 'Aún no se han agregado propiedades',
+    saveProperty: 'Guardar Propiedad',
+    propertyCreated: '¡Propiedad Creada!',
+    propertyNameRequired: 'El nombre de la propiedad es obligatorio.',
+    propertyRequired: 'Por favor selecciona al menos una propiedad.',
+    selectPropertyLabel: 'Propiedad de Trabajo',
+    selectPropertyHint: 'Selecciona la propiedad o propiedades donde trabajas',
+    customAmenity: 'Agregar área personalizada...',
+    addAmenity: 'Agregar',
+    roomsLabel: 'habitaciones',
   },
   HI: {
     // Auth
@@ -843,6 +894,29 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     csvScheduleFormat: 'CSV प्रारूप: तिथि, शीर्षक, प्रकार, विवरण, सौंपा गया',
     parseSchedule: 'इवेंट आयात करें',
     eventsImported: 'इवेंट मिले',
+    // Property Management
+    addProperty: 'नई संपत्ति जोड़ें',
+    editProperty: 'संपत्ति संपादित करें',
+    propertyName: 'संपत्ति का नाम',
+    propertyAddress: 'संपत्ति का पता',
+    propertyPhone: 'संपत्ति का फोन',
+    floorCount: 'मंजिलों की संख्या',
+    roomNumbering: 'कमरा क्रमांकन',
+    floorLabel: 'मंजिल',
+    commonAreasAmenities: 'सामान्य क्षेत्र और सुविधाएं',
+    uploadSchematics: 'स्कीमेटिक्स अपलोड करें',
+    companyLogo: 'कंपनी लोगो',
+    properties: 'संपत्तियां',
+    noProperties: 'अभी तक कोई संपत्ति नहीं जोड़ी गई',
+    saveProperty: 'संपत्ति सहेजें',
+    propertyCreated: 'संपत्ति बनाई गई!',
+    propertyNameRequired: 'संपत्ति का नाम आवश्यक है।',
+    propertyRequired: 'कृपया कम से कम एक संपत्ति चुनें।',
+    selectPropertyLabel: 'कार्यस्थल संपत्ति',
+    selectPropertyHint: 'वह संपत्ति या संपत्तियां चुनें जहां आप काम करते हैं',
+    customAmenity: 'कस्टम क्षेत्र जोड़ें...',
+    addAmenity: 'जोड़ें',
+    roomsLabel: 'कमरे',
   },
 };
 
@@ -871,6 +945,58 @@ const StatBadge: React.FC<{ label: string; value: string | number; accent?: stri
     <span className="text-[10px] text-gray-500 font-grotesk uppercase tracking-widest">{label}</span>
   </div>
 );
+
+// ─── Property Selector ────────────────────────────────────────────────────────
+const PropertySelector: React.FC<{
+  properties: Property[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  lang: Lang;
+}> = ({ properties, selectedIds, onChange, lang }) => {
+  const t = LANG_LABELS[lang];
+  if (properties.length === 0) return null;
+  const toggle = (id: string) =>
+    onChange(selectedIds.includes(id) ? selectedIds.filter(x => x !== id) : [...selectedIds, id]);
+  return (
+    <div>
+      <label className="block text-[10px] font-grotesk font-600 text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+        <Icon name="apartment" size={12} />
+        {t.selectPropertyLabel}
+      </label>
+      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+        {properties.map(p => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => toggle(p.id)}
+            className={`w-full flex items-center gap-3 p-2.5 rounded-sm border transition-all text-left ${
+              selectedIds.includes(p.id)
+                ? 'border-primary/60 bg-primary/8'
+                : 'border-border bg-surface-3 hover:border-primary/30'
+            }`}
+          >
+            <div className="w-8 h-8 rounded-sm bg-surface-2 border border-border flex items-center justify-center overflow-hidden shrink-0">
+              {p.photoUrl
+                ? <img src={p.photoUrl} alt={p.name} className="w-full h-full object-contain" />
+                : <Icon name="apartment" size={16} className="text-gray-600" />
+              }
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-grotesk font-600 text-gray-200 truncate">{p.name}</p>
+              {p.address && <p className="text-[9px] text-gray-500 font-grotesk truncate">{p.address}</p>}
+            </div>
+            <div className={`w-4 h-4 rounded-sm border flex items-center justify-center shrink-0 transition-all ${
+              selectedIds.includes(p.id) ? 'border-primary bg-primary' : 'border-border'
+            }`}>
+              {selectedIds.includes(p.id) && <Icon name="check" size={10} className="text-black" />}
+            </div>
+          </button>
+        ))}
+      </div>
+      <p className="text-[9px] text-gray-600 font-grotesk mt-1.5">{t.selectPropertyHint}</p>
+    </div>
+  );
+};
 
 // ─── Portal Select ────────────────────────────────────────────────────────────
 const PortalSelect: React.FC<{ onSelect: (p: 'admin-login' | 'staff-login') => void; lang: Lang; setLang: (l: Lang) => void }> = ({
@@ -921,17 +1047,22 @@ const AdminLogin: React.FC<{
   onBack: () => void;
   lang: Lang;
   setLang: (l: Lang) => void;
-}> = ({ onLogin, onBack, lang, setLang }) => {
+  properties: Property[];
+}> = ({ onLogin, onBack, lang, setLang, properties }) => {
   const t = LANG_LABELS[lang];
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const resetFields = () => { setEmail(''); setPassword(''); setName(''); setConfirmPassword(''); setError(''); };
+  const resetFields = () => {
+    setEmail(''); setPassword(''); setName(''); setConfirmPassword('');
+    setSelectedPropertyIds([]); setError('');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -941,7 +1072,14 @@ const AdminLogin: React.FC<{
         if (!name.trim()) { setError(t.nameRequired); setLoading(false); return; }
         if (password !== confirmPassword) { setError(t.passwordMismatch); setLoading(false); return; }
         if (password.length < 6) { setError(t.passwordTooShort); setLoading(false); return; }
-        const newUser: User = { id: `u-${Date.now()}`, name: name.trim(), role: UserRole.ADMIN, email, phone: '', propertyId: 'prop-1' };
+        if (properties.length > 0 && selectedPropertyIds.length === 0) {
+          setError(t.propertyRequired); setLoading(false); return;
+        }
+        const primaryId = selectedPropertyIds[0] || (properties[0]?.id ?? 'prop-1');
+        const newUser: User = {
+          id: `u-${Date.now()}`, name: name.trim(), role: UserRole.ADMIN,
+          email, phone: '', propertyId: primaryId, propertyIds: selectedPropertyIds,
+        };
         onLogin(newUser);
       }, 800);
     } else {
@@ -1056,6 +1194,15 @@ const AdminLogin: React.FC<{
                 </div>
               )}
 
+              {mode === 'register' && properties.length > 0 && (
+                <PropertySelector
+                  properties={properties}
+                  selectedIds={selectedPropertyIds}
+                  onChange={ids => { setSelectedPropertyIds(ids); setError(''); }}
+                  lang={lang}
+                />
+              )}
+
               {error && (
                 <p className="text-[11px] text-red-400 flex items-center gap-1.5">
                   <Icon name="error" size={14} />
@@ -1099,17 +1246,22 @@ const StaffLogin: React.FC<{
   onBack: () => void;
   lang: Lang;
   setLang: (l: Lang) => void;
-}> = ({ onLogin, onBack, lang, setLang }) => {
+  properties: Property[];
+}> = ({ onLogin, onBack, lang, setLang, properties }) => {
   const t = LANG_LABELS[lang];
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [operatorId, setOperatorId] = useState('');
   const [pin, setPin] = useState('');
   const [name, setName] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [selectedPropertyIds, setSelectedPropertyIds] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const resetFields = () => { setOperatorId(''); setPin(''); setName(''); setConfirmPin(''); setError(''); };
+  const resetFields = () => {
+    setOperatorId(''); setPin(''); setName(''); setConfirmPin('');
+    setSelectedPropertyIds([]); setError('');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1120,7 +1272,15 @@ const StaffLogin: React.FC<{
         if (!operatorId.trim()) { setError(t.operatorRequired); setLoading(false); return; }
         if (pin.length < 4) { setError(t.pinRequired); setLoading(false); return; }
         if (pin !== confirmPin) { setError(t.pinMismatch); setLoading(false); return; }
-        const newUser: User = { id: `u-${Date.now()}`, name: name.trim(), role: UserRole.STAFF, email: operatorId.trim().toLowerCase(), phone: '', propertyId: 'prop-1' };
+        if (properties.length > 0 && selectedPropertyIds.length === 0) {
+          setError(t.propertyRequired); setLoading(false); return;
+        }
+        const primaryId = selectedPropertyIds[0] || (properties[0]?.id ?? 'prop-1');
+        const newUser: User = {
+          id: `u-${Date.now()}`, name: name.trim(), role: UserRole.STAFF,
+          email: operatorId.trim().toLowerCase(), phone: '',
+          propertyId: primaryId, propertyIds: selectedPropertyIds,
+        };
         onLogin(newUser);
       }, 600);
     } else {
@@ -1208,6 +1368,15 @@ const StaffLogin: React.FC<{
                 maxLength={4}
               />
             </div>
+          )}
+
+          {mode === 'register' && properties.length > 0 && (
+            <PropertySelector
+              properties={properties}
+              selectedIds={selectedPropertyIds}
+              onChange={ids => { setSelectedPropertyIds(ids); setError(''); }}
+              lang={lang}
+            />
           )}
 
           {error && (
@@ -2166,9 +2335,310 @@ const ProfileEditor: React.FC<{
   );
 };
 
-// ─── Admin Settings ───────────────────────────────────────────────────────────
-const AdminSettings: React.FC<{ user: User; property: Property; lang: Lang; onUpdateUser: (u: Partial<User>) => void }> = ({ user, property, lang, onUpdateUser }) => {
+// ─── Add Property Modal ───────────────────────────────────────────────────────
+const AddPropertyModal: React.FC<{
+  onSave: (p: Property) => void;
+  onClose: () => void;
+  lang: Lang;
+}> = ({ onSave, onClose, lang }) => {
   const t = LANG_LABELS[lang];
+  const [name, setName] = useState('');
+  const [address, setAddress] = useState('');
+  const [phone, setPhone] = useState('');
+  const [floorCount, setFloorCount] = useState(1);
+  const [floorLayouts, setFloorLayouts] = useState<{ floor: number; start: number; end: number }[]>([
+    { floor: 1, start: 101, end: 120 },
+  ]);
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [customAmenity, setCustomAmenity] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [schematicName, setSchematicName] = useState('');
+  const [error, setError] = useState('');
+  const logoRef = useRef<HTMLInputElement>(null);
+  const schematicRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setFloorLayouts(prev => {
+      const next: { floor: number; start: number; end: number }[] = [];
+      for (let i = 1; i <= floorCount; i++) {
+        const existing = prev.find(f => f.floor === i);
+        next.push(existing || { floor: i, start: i * 100 + 1, end: i * 100 + 20 });
+      }
+      return next;
+    });
+  }, [floorCount]);
+
+  const updateLayout = (floor: number, field: 'start' | 'end', value: number) =>
+    setFloorLayouts(prev => prev.map(f => f.floor === floor ? { ...f, [field]: value } : f));
+
+  const toggleAmenity = (a: string) =>
+    setAmenities(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
+
+  const addCustomAmenity = () => {
+    const trimmed = customAmenity.trim();
+    if (trimmed && !amenities.includes(trimmed)) {
+      setAmenities(prev => [...prev, trimmed]);
+      setCustomAmenity('');
+    }
+  };
+
+  const handleLogo = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = e => setLogoUrl(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = () => {
+    if (!name.trim()) { setError(t.propertyNameRequired); return; }
+    onSave({
+      id: `prop-${Date.now()}`,
+      name: name.trim(),
+      address: address.trim() || undefined,
+      phone: phone.trim() || undefined,
+      floors: floorCount,
+      floorLayouts,
+      amenities,
+      commonAreas: amenities,
+      photoUrl: logoUrl ?? undefined,
+      schematicUrl: schematicName || undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="bg-surface-2 border border-border rounded-sm w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
+          <div>
+            <h2 className="font-grotesk text-sm font-700 text-gray-100 flex items-center gap-2">
+              <Icon name="apartment" size={16} className="text-primary" />
+              {t.addProperty}
+            </h2>
+            <p className="text-[10px] text-gray-500 font-grotesk mt-0.5">{t.propertyConfig}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-300 transition-colors">
+            <Icon name="close" size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Logo */}
+          <div className="flex flex-col items-center gap-3 pb-4 border-b border-border">
+            <div
+              onClick={() => logoRef.current?.click()}
+              className="w-20 h-20 rounded-sm bg-surface-3 border-2 border-dashed border-border hover:border-primary cursor-pointer flex items-center justify-center overflow-hidden transition-colors"
+            >
+              {logoUrl
+                ? <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                : <Icon name="apartment" size={32} className="text-gray-600" />
+              }
+            </div>
+            <button
+              type="button"
+              onClick={() => logoRef.current?.click()}
+              className="flex items-center gap-1.5 text-[10px] font-grotesk text-gray-500 border border-border px-3 py-1.5 rounded-sm hover:border-primary hover:text-primary transition-colors"
+            >
+              <Icon name="photo_library" size={13} />
+              {t.companyLogo}
+            </button>
+            <input ref={logoRef} type="file" accept="image/*" className="hidden"
+              onChange={e => e.target.files?.[0] && handleLogo(e.target.files[0])} />
+          </div>
+
+          {/* Basic Info */}
+          <div className="space-y-3">
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">
+                {t.propertyName} *
+              </label>
+              <input type="text" value={name}
+                onChange={e => { setName(e.target.value); setError(''); }}
+                className="input-box" placeholder="Grand View Resort & Spa" />
+            </div>
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">
+                {t.propertyAddress}
+              </label>
+              <input type="text" value={address} onChange={e => setAddress(e.target.value)}
+                className="input-box" placeholder="123 Main St, Miami, FL 33101" />
+            </div>
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-1">
+                {t.propertyPhone}
+              </label>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                className="input-box" placeholder="(305) 555-0100" />
+            </div>
+          </div>
+
+          {/* Floor Count & Room Numbering */}
+          <div className="border-t border-border pt-4 space-y-4">
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-2">
+                {t.floorCount}
+              </label>
+              <div className="flex items-center gap-3">
+                <button type="button"
+                  onClick={() => setFloorCount(f => Math.max(1, f - 1))}
+                  className="w-8 h-8 rounded-sm bg-surface-3 border border-border flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors"
+                >
+                  <Icon name="remove" size={16} />
+                </button>
+                <span className="font-grotesk font-700 text-2xl text-primary w-8 text-center">{floorCount}</span>
+                <button type="button"
+                  onClick={() => setFloorCount(f => Math.min(50, f + 1))}
+                  className="w-8 h-8 rounded-sm bg-surface-3 border border-border flex items-center justify-center text-gray-400 hover:text-primary hover:border-primary transition-colors"
+                >
+                  <Icon name="add" size={16} />
+                </button>
+                <span className="text-[10px] text-gray-500 font-grotesk">{t.floors}</span>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block mb-2">
+                {t.roomNumbering}
+              </label>
+              <div className="space-y-2">
+                {floorLayouts.map(layout => (
+                  <div key={layout.floor} className="flex items-center gap-2">
+                    <span className="text-[9px] font-grotesk text-gray-600 w-14 shrink-0">
+                      {t.floorLabel} {layout.floor}
+                    </span>
+                    <input type="number" value={layout.start}
+                      onChange={e => updateLayout(layout.floor, 'start', parseInt(e.target.value) || layout.start)}
+                      className="input-box w-20 text-center text-xs" placeholder="101" />
+                    <span className="text-gray-600 text-xs">—</span>
+                    <input type="number" value={layout.end}
+                      onChange={e => updateLayout(layout.floor, 'end', parseInt(e.target.value) || layout.end)}
+                      className="input-box w-20 text-center text-xs" placeholder="120" />
+                    <span className="text-[9px] text-gray-600 font-grotesk shrink-0">
+                      ({Math.max(0, layout.end - layout.start + 1)} {t.roomsLabel})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Amenities */}
+          <div className="border-t border-border pt-4 space-y-3">
+            <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block">
+              {t.commonAreasAmenities}
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {PRESET_AMENITIES.map(a => (
+                <button key={a} type="button" onClick={() => toggleAmenity(a)}
+                  className={`px-2.5 py-1 text-[10px] font-grotesk rounded-sm border transition-all ${
+                    amenities.includes(a)
+                      ? 'bg-primary/15 border-primary text-primary'
+                      : 'bg-surface-3 border-border text-gray-500 hover:border-primary/40 hover:text-gray-300'
+                  }`}
+                >
+                  {amenities.includes(a) && '✓ '}{a}
+                </button>
+              ))}
+            </div>
+            {/* Custom amenity input */}
+            <div className="flex items-center gap-2">
+              <input type="text" value={customAmenity}
+                onChange={e => setCustomAmenity(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustomAmenity())}
+                className="input-box flex-1" placeholder={t.customAmenity} />
+              <button type="button" onClick={addCustomAmenity}
+                className="px-3 py-2 text-[10px] font-grotesk font-700 bg-surface-3 border border-border rounded-sm text-gray-400 hover:text-primary hover:border-primary transition-colors shrink-0"
+              >
+                {t.addAmenity}
+              </button>
+            </div>
+            {/* Custom amenities tags */}
+            {amenities.filter(a => !PRESET_AMENITIES.includes(a)).length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {amenities.filter(a => !PRESET_AMENITIES.includes(a)).map(a => (
+                  <span key={a} className="px-2.5 py-1 text-[10px] font-grotesk rounded-sm bg-secondary/10 border border-secondary/30 text-secondary flex items-center gap-1">
+                    {a}
+                    <button type="button" onClick={() => setAmenities(prev => prev.filter(x => x !== a))}
+                      className="hover:text-red-400 transition-colors ml-0.5">
+                      <Icon name="close" size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Schematic Upload */}
+          <div className="border-t border-border pt-4 space-y-2">
+            <label className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest block">
+              {t.uploadSchematics}
+            </label>
+            <div
+              onClick={() => schematicRef.current?.click()}
+              className="border border-dashed border-border rounded-sm p-4 flex flex-col items-center gap-2 cursor-pointer hover:border-primary/50 transition-colors"
+            >
+              {schematicName ? (
+                <>
+                  <Icon name="description" size={24} className="text-primary" />
+                  <span className="text-[10px] font-grotesk text-primary">{schematicName}</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="upload_file" size={24} className="text-gray-600" />
+                  <span className="text-[10px] font-grotesk text-gray-500">{t.fileSupport}</span>
+                </>
+              )}
+            </div>
+            <input ref={schematicRef} type="file" accept=".pdf,.dwg" className="hidden"
+              onChange={e => e.target.files?.[0] && setSchematicName(e.target.files[0].name)} />
+          </div>
+
+          {error && (
+            <p className="text-[11px] text-red-400 flex items-center gap-1.5">
+              <Icon name="error" size={14} />
+              {error}
+            </p>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-border flex items-center justify-end gap-2 shrink-0">
+          <button type="button" onClick={onClose}
+            className="px-4 py-2 text-[10px] font-grotesk font-600 text-gray-500 border border-border rounded-sm hover:text-gray-300 hover:border-gray-500 transition-colors"
+          >
+            {t.cancel}
+          </button>
+          <button type="button" onClick={handleSave}
+            className="px-4 py-2 text-[10px] font-grotesk font-700 tracking-widest text-black sig-gradient rounded-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center gap-2"
+          >
+            <Icon name="apartment" size={14} />
+            {t.saveProperty}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Admin Settings ───────────────────────────────────────────────────────────
+const AdminSettings: React.FC<{
+  user: User;
+  property: Property;
+  properties: Property[];
+  onAddProperty: (p: Property) => void;
+  onUpdateProperty: (p: Property) => void;
+  lang: Lang;
+  onUpdateUser: (u: Partial<User>) => void;
+}> = ({ user, property, properties, onAddProperty, onUpdateProperty, lang, onUpdateUser }) => {
+  const t = LANG_LABELS[lang];
+  const [showAddProperty, setShowAddProperty] = useState(false);
+
+  const handlePropertyLogoChange = (p: Property, file: File) => {
+    const reader = new FileReader();
+    reader.onload = e => onUpdateProperty({ ...p, photoUrl: e.target?.result as string });
+    reader.readAsDataURL(file);
+  };
+
   return (
   <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 md:space-y-5">
     <div>
@@ -2176,7 +2646,7 @@ const AdminSettings: React.FC<{ user: User; property: Property; lang: Lang; onUp
       <p className="text-xs text-gray-500 mt-0.5">{t.propertyConfig}</p>
     </div>
 
-    {/* Admin Profile — full-width editable */}
+    {/* Admin Profile */}
     <div className="bg-surface-2 border border-border rounded-sm p-5 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-grotesk text-xs font-600 text-gray-300 uppercase tracking-widest flex items-center gap-2">
@@ -2188,15 +2658,94 @@ const AdminSettings: React.FC<{ user: User; property: Property; lang: Lang; onUp
       <ProfileEditor user={user} onSave={onUpdateUser} lang={lang} />
     </div>
 
-    {/* Facility info */}
-    <div className="bg-surface-2 border border-border rounded-sm p-5 space-y-2">
-      <h3 className="font-grotesk text-xs font-600 text-gray-300 uppercase tracking-widest flex items-center gap-2">
-        <Icon name="apartment" size={16} className="text-secondary" />
-        {t.facility}
-      </h3>
-      <p className="text-sm font-grotesk font-600 text-gray-200">{property.name}</p>
-      <p className="text-[10px] text-gray-500 font-grotesk">{property.floors} {t.floors} · {property.floorLayouts?.reduce((acc, fl) => acc + (fl.end - fl.start + 1), 0) || 0} {t.units}</p>
+    {/* Properties */}
+    <div className="bg-surface-2 border border-border rounded-sm p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-grotesk text-xs font-600 text-gray-300 uppercase tracking-widest flex items-center gap-2">
+          <Icon name="apartment" size={16} className="text-secondary" />
+          {t.properties}
+        </h3>
+        <button
+          onClick={() => setShowAddProperty(true)}
+          className="flex items-center gap-1.5 text-[10px] font-grotesk font-600 text-primary border border-primary/30 bg-primary/5 hover:bg-primary/15 px-3 py-1.5 rounded-sm transition-all"
+        >
+          <Icon name="add" size={14} />
+          {t.addProperty}
+        </button>
+      </div>
+
+      {properties.length === 0 ? (
+        <div className="flex flex-col items-center py-8 text-gray-600 gap-2">
+          <Icon name="apartment" size={32} />
+          <p className="text-xs font-grotesk">{t.noProperties}</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {properties.map(p => {
+            const logoInputId = `logo-input-${p.id}`;
+            return (
+              <div key={p.id} className="bg-surface-3 border border-border rounded-sm p-4">
+                <div className="flex items-start gap-3">
+                  {/* Logo — click to change */}
+                  <label htmlFor={logoInputId} className="cursor-pointer shrink-0" title={t.companyLogo}>
+                    <div className="w-14 h-14 rounded-sm bg-surface-2 border border-border flex items-center justify-center overflow-hidden hover:border-primary transition-colors">
+                      {p.photoUrl
+                        ? <img src={p.photoUrl} alt={p.name} className="w-full h-full object-contain" />
+                        : <Icon name="apartment" size={22} className="text-gray-600" />
+                      }
+                    </div>
+                    <input
+                      id={logoInputId}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => e.target.files?.[0] && handlePropertyLogoChange(p, e.target.files[0])}
+                    />
+                  </label>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-grotesk font-600 text-gray-200">{p.name}</p>
+                    {p.address && (
+                      <p className="text-[10px] text-gray-500 font-grotesk mt-0.5 flex items-center gap-1">
+                        <Icon name="location_on" size={10} />{p.address}
+                      </p>
+                    )}
+                    {p.phone && (
+                      <p className="text-[10px] text-gray-500 font-grotesk flex items-center gap-1">
+                        <Icon name="phone" size={10} />{p.phone}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-600 font-grotesk mt-1">
+                      {p.floors} {t.floors} · {p.floorLayouts?.reduce((acc, fl) => acc + (fl.end - fl.start + 1), 0) || 0} {t.roomsLabel}
+                    </p>
+                    {p.amenities && p.amenities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {p.amenities.map(a => (
+                          <span key={a} className="px-1.5 py-0.5 text-[8px] font-grotesk bg-secondary/10 border border-secondary/20 text-secondary rounded-sm">
+                            {a}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[9px] text-gray-700 font-grotesk mt-1.5 flex items-center gap-1">
+                      <Icon name="photo_library" size={10} />
+                      {t.companyLogo} — {t.uploadSchematics.toLowerCase()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
+
+    {showAddProperty && (
+      <AddPropertyModal
+        onSave={p => { onAddProperty(p); setShowAddProperty(false); }}
+        onClose={() => setShowAddProperty(false)}
+        lang={lang}
+      />
+    )}
   </div>
   );
 };
@@ -2832,8 +3381,14 @@ const AdminCalendar: React.FC<{ lang: Lang }> = ({ lang }) => {
 };
 
 // ─── Admin Portal ─────────────────────────────────────────────────────────────
-const AdminPortal: React.FC<{ user: User; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void; tasks: Task[]; onAddTask: (task: Task) => void; onUpdateTask: (task: Task) => void; onUpdateUser: (u: Partial<User>) => void }> = ({
-  user, onLogout, lang, setLang, tasks, onAddTask, onUpdateTask, onUpdateUser
+const AdminPortal: React.FC<{
+  user: User; onLogout: () => void; lang: Lang; setLang: (l: Lang) => void;
+  tasks: Task[]; onAddTask: (task: Task) => void; onUpdateTask: (task: Task) => void;
+  onUpdateUser: (u: Partial<User>) => void;
+  properties: Property[]; onAddProperty: (p: Property) => void; onUpdateProperty: (p: Property) => void;
+}> = ({
+  user, onLogout, lang, setLang, tasks, onAddTask, onUpdateTask, onUpdateUser,
+  properties, onAddProperty, onUpdateProperty,
 }) => {
   const [view, setView] = useState<AdminView>('dashboard');
   const [showReportModal, setShowReportModal] = useState(false);
@@ -2841,6 +3396,7 @@ const AdminPortal: React.FC<{ user: User; onLogout: () => void; lang: Lang; setL
   const [inventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
   const t = LANG_LABELS[lang];
   const openIssueCount = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length;
+  const activeProperty = properties.find(p => p.id === user.propertyId) || properties[0] || MOCK_PROPERTY;
 
   const navItems: { view: AdminView; icon: string; label: string }[] = [
     { view: 'dashboard', icon: 'grid_view', label: t.dashboard },
@@ -2854,7 +3410,7 @@ const AdminPortal: React.FC<{ user: User; onLogout: () => void; lang: Lang; setL
 
   return (
     <div className="flex h-screen bg-surface overflow-hidden">
-      <AdminSidebar view={view} setView={setView} onLogout={onLogout} property={MOCK_PROPERTY} lang={lang} setLang={setLang} openIssueCount={openIssueCount} />
+      <AdminSidebar view={view} setView={setView} onLogout={onLogout} property={activeProperty} lang={lang} setLang={setLang} openIssueCount={openIssueCount} />
       <main className="flex-1 overflow-hidden flex flex-col bg-surface blueprint-bg min-w-0">
         {/* Top bar */}
         <div className="h-12 border-b border-border bg-surface-2/50 flex items-center px-4 justify-between shrink-0">
@@ -2895,13 +3451,23 @@ const AdminPortal: React.FC<{ user: User; onLogout: () => void; lang: Lang; setL
 
         {/* View */}
         <div className="flex-1 overflow-hidden flex min-h-0">
-          {view === 'dashboard' && <AdminDashboard rooms={rooms} property={MOCK_PROPERTY} lang={lang} onRoomsUpdate={setRooms} />}
+          {view === 'dashboard' && <AdminDashboard rooms={rooms} property={activeProperty} lang={lang} onRoomsUpdate={setRooms} />}
           {view === 'issues' && <AdminIssues tasks={tasks} onUpdateTask={onUpdateTask} lang={lang} />}
           {view === 'calendar' && <AdminCalendar lang={lang} />}
-          {view === 'roomgrid' && <AdminRoomGrid rooms={rooms} property={MOCK_PROPERTY} lang={lang} />}
+          {view === 'roomgrid' && <AdminRoomGrid rooms={rooms} property={activeProperty} lang={lang} />}
           {view === 'inventory' && <AdminInventory inventory={inventory} lang={lang} />}
           {view === 'schematics' && <AdminSchematics lang={lang} />}
-          {view === 'settings' && <AdminSettings user={user} property={MOCK_PROPERTY} lang={lang} onUpdateUser={onUpdateUser} />}
+          {view === 'settings' && (
+            <AdminSettings
+              user={user}
+              property={activeProperty}
+              properties={properties}
+              onAddProperty={onAddProperty}
+              onUpdateProperty={onUpdateProperty}
+              lang={lang}
+              onUpdateUser={onUpdateUser}
+            />
+          )}
         </div>
 
         {showReportModal && (
@@ -3785,6 +4351,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [lang, setLang] = useState<Lang>('EN');
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [properties, setProperties] = useState<Property[]>([MOCK_PROPERTY]);
 
   const handleAdminLogin = (user: User) => { setCurrentUser(user); setPortal('admin'); };
   const handleStaffLogin = (user: User) => { setCurrentUser(user); setPortal('staff'); };
@@ -3792,14 +4359,25 @@ export default function App() {
   const handleAddTask = (task: Task) => setTasks(prev => [task, ...prev]);
   const handleUpdateTask = (updated: Task) => setTasks(prev => prev.map(t => t.id === updated.id ? updated : t));
   const handleUpdateUser = (updates: Partial<User>) => setCurrentUser(prev => prev ? { ...prev, ...updates } : prev);
+  const handleAddProperty = (p: Property) => setProperties(prev => [...prev, p]);
+  const handleUpdateProperty = (updated: Property) =>
+    setProperties(prev => prev.map(p => p.id === updated.id ? updated : p));
 
   return (
     <>
       {portal === 'select' && <PortalSelect onSelect={setPortal} lang={lang} setLang={setLang} />}
-      {portal === 'admin-login' && <AdminLogin onLogin={handleAdminLogin} onBack={() => setPortal('select')} lang={lang} setLang={setLang} />}
-      {portal === 'staff-login' && <StaffLogin onLogin={handleStaffLogin} onBack={() => setPortal('select')} lang={lang} setLang={setLang} />}
+      {portal === 'admin-login' && (
+        <AdminLogin onLogin={handleAdminLogin} onBack={() => setPortal('select')} lang={lang} setLang={setLang} properties={properties} />
+      )}
+      {portal === 'staff-login' && (
+        <StaffLogin onLogin={handleStaffLogin} onBack={() => setPortal('select')} lang={lang} setLang={setLang} properties={properties} />
+      )}
       {portal === 'admin' && currentUser && (
-        <AdminPortal user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onUpdateUser={handleUpdateUser} />
+        <AdminPortal
+          user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang}
+          tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onUpdateUser={handleUpdateUser}
+          properties={properties} onAddProperty={handleAddProperty} onUpdateProperty={handleUpdateProperty}
+        />
       )}
       {portal === 'staff' && currentUser && (
         <StaffPortal user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onUpdateUser={handleUpdateUser} />

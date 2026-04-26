@@ -15,10 +15,13 @@ export enum RoomStatus {
 export interface Property {
   id: string;
   name: string;
+  address?: string;
+  phone?: string;
   floors: number;
-  schematicUrl?: string; // Digital blueprints/map
-  photoUrl?: string; // Property profile photo
+  schematicUrl?: string;
+  photoUrl?: string;
   commonAreas?: string[];
+  amenities?: string[];
   floorLayouts?: { floor: number; start: number; end: number }[];
 }
 
@@ -31,6 +34,7 @@ export interface User {
   avatar?: string;
   password?: string;
   propertyId: string;
+  propertyIds?: string[];
 }
 
 export interface LogEntry {
