@@ -12,7 +12,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import {
-  collection, doc, getDoc, setDoc, updateDoc, onSnapshot,
+  collection, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot,
 } from 'firebase/firestore';
 
 // ─── Assets ──────────────────────────────────────────────────────────────────
@@ -393,6 +393,10 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     customAmenity: 'Add custom area...',
     addAmenity: 'Add',
     roomsLabel: 'rooms',
+    switchProperty: 'Switch Property',
+    removeProperty: 'Remove Property',
+    confirmRemove: 'Remove this property? This cannot be undone.',
+    cannotRemoveLast: 'Cannot remove the only property',
   },
   ES: {
     // Auth
@@ -660,6 +664,10 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     customAmenity: 'Agregar área personalizada...',
     addAmenity: 'Agregar',
     roomsLabel: 'habitaciones',
+    switchProperty: 'Cambiar Propiedad',
+    removeProperty: 'Eliminar Propiedad',
+    confirmRemove: '¿Eliminar esta propiedad? Esto no se puede deshacer.',
+    cannotRemoveLast: 'No se puede eliminar la única propiedad',
   },
   HI: {
     // Auth
@@ -927,6 +935,10 @@ const LANG_LABELS: Record<Lang, Record<string, string>> = {
     customAmenity: 'कस्टम क्षेत्र जोड़ें...',
     addAmenity: 'जोड़ें',
     roomsLabel: 'कमरे',
+    switchProperty: 'संपत्ति बदलें',
+    removeProperty: 'संपत्ति हटाएं',
+    confirmRemove: 'इस संपत्ति को हटाएं? यह पूर्ववत नहीं किया जा सकता।',
+    cannotRemoveLast: 'एकमात्र संपत्ति को नहीं हटाया जा सकता',
   },
 };
 
@@ -1458,11 +1470,15 @@ const AdminSidebar: React.FC<{
   setView: (v: AdminView) => void;
   onLogout: () => void;
   property: Property;
+  properties: Property[];
+  activePropertyId: string;
+  onPropertyChange: (id: string) => void;
   lang: Lang;
   setLang: (l: Lang) => void;
   openIssueCount?: number;
-}> = ({ view, setView, onLogout, property, lang, setLang, openIssueCount = 0 }) => {
+}> = ({ view, setView, onLogout, property, properties, activePropertyId, onPropertyChange, lang, setLang, openIssueCount = 0 }) => {
   const t = LANG_LABELS[lang];
+  const [showPropertyPicker, setShowPropertyPicker] = useState(false);
   const navItems: { view: AdminView; icon: string; label: string }[] = [
     { view: 'dashboard', icon: 'grid_view', label: t.dashboard },
     { view: 'issues', icon: 'report_problem', label: t.issues },
@@ -1480,14 +1496,49 @@ const AdminSidebar: React.FC<{
         <img src={logoHorizontal} alt="Fyxinn" className="h-8 object-contain object-left" style={{ filter: 'drop-shadow(0 0 8px rgba(88,226,31,0.3))', mixBlendMode: 'screen' }} />
       </div>
 
-      {/* Property */}
-      <div className="px-4 py-3 border-b border-border">
-        <p className="text-[9px] text-gray-600 font-grotesk uppercase tracking-widest">{t.activeFacility}</p>
-        <p className="text-xs text-gray-300 font-grotesk font-500 mt-0.5 truncate">{property.name}</p>
-        <div className="flex items-center gap-1 mt-1">
-          <span className="w-1.5 h-1.5 rounded-full dot-green inline-block"></span>
-          <span className="text-[9px] text-primary font-grotesk">{t.online}</span>
-        </div>
+      {/* Property switcher */}
+      <div className="border-b border-border">
+        <button
+          onClick={() => properties.length > 1 && setShowPropertyPicker(p => !p)}
+          className={`w-full px-4 py-3 text-left transition-colors ${properties.length > 1 ? 'hover:bg-surface-3 cursor-pointer' : 'cursor-default'}`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-[9px] text-gray-600 font-grotesk uppercase tracking-widest">{t.activeFacility}</p>
+            {properties.length > 1 && (
+              <Icon name={showPropertyPicker ? 'expand_less' : 'expand_more'} size={14} className="text-gray-600" />
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            {property.photoUrl
+              ? <img src={property.photoUrl} alt="" className="w-4 h-4 rounded-sm object-contain shrink-0" />
+              : <Icon name="apartment" size={14} className="text-gray-500 shrink-0" />
+            }
+            <p className="text-xs text-gray-300 font-grotesk font-500 truncate">{property.name}</p>
+          </div>
+          <div className="flex items-center gap-1 mt-1">
+            <span className="w-1.5 h-1.5 rounded-full dot-green inline-block"></span>
+            <span className="text-[9px] text-primary font-grotesk">{t.online}</span>
+          </div>
+        </button>
+
+        {showPropertyPicker && properties.length > 1 && (
+          <div className="border-t border-border bg-surface-3 py-1">
+            {properties.map(p => (
+              <button
+                key={p.id}
+                onClick={() => { onPropertyChange(p.id); setShowPropertyPicker(false); }}
+                className={`w-full flex items-center gap-2 px-4 py-2 transition-colors text-left ${p.id === activePropertyId ? 'text-primary bg-primary/5' : 'text-gray-400 hover:text-gray-200 hover:bg-surface-2'}`}
+              >
+                {p.photoUrl
+                  ? <img src={p.photoUrl} alt="" className="w-5 h-5 rounded-sm object-contain shrink-0" />
+                  : <Icon name="apartment" size={14} className="shrink-0" />
+                }
+                <span className="text-[11px] font-grotesk truncate">{p.name}</span>
+                {p.id === activePropertyId && <Icon name="check" size={12} className="ml-auto shrink-0" />}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Nav */}
@@ -2666,11 +2717,13 @@ const AdminSettings: React.FC<{
   properties: Property[];
   onAddProperty: (p: Property) => void;
   onUpdateProperty: (p: Property) => void;
+  onDeleteProperty: (id: string) => void;
   lang: Lang;
   onUpdateUser: (u: Partial<User>) => void;
-}> = ({ user, property, properties, onAddProperty, onUpdateProperty, lang, onUpdateUser }) => {
+}> = ({ user, property, properties, onAddProperty, onUpdateProperty, onDeleteProperty, lang, onUpdateUser }) => {
   const t = LANG_LABELS[lang];
   const [showAddProperty, setShowAddProperty] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handlePropertyLogoChange = (p: Property, file: File) => {
     const reader = new FileReader();
@@ -2769,6 +2822,36 @@ const AdminSettings: React.FC<{
                       <Icon name="photo_library" size={10} />
                       {t.companyLogo} — {t.uploadSchematics.toLowerCase()}
                     </p>
+                  </div>
+                  {/* Delete */}
+                  <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    {confirmDeleteId === p.id ? (
+                      <div className="flex flex-col items-end gap-1.5">
+                        <p className="text-[9px] text-red-400 font-grotesk text-right max-w-[120px]">{t.confirmRemove}</p>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="text-[9px] font-grotesk text-gray-500 border border-border px-2 py-1 rounded-sm hover:text-gray-300 transition-colors"
+                          >
+                            {t.cancel}
+                          </button>
+                          <button
+                            onClick={() => { onDeleteProperty(p.id); setConfirmDeleteId(null); }}
+                            className="text-[9px] font-grotesk text-red-400 border border-red-400/30 bg-red-400/10 px-2 py-1 rounded-sm hover:bg-red-400/20 transition-colors"
+                          >
+                            {t.removeProperty}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => properties.length > 1 ? setConfirmDeleteId(p.id) : undefined}
+                        title={properties.length === 1 ? t.cannotRemoveLast : t.removeProperty}
+                        className={`transition-colors ${properties.length === 1 ? 'text-gray-700 cursor-not-allowed' : 'text-gray-600 hover:text-red-400'}`}
+                      >
+                        <Icon name="delete" size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3425,17 +3508,29 @@ const AdminPortal: React.FC<{
   tasks: Task[]; onAddTask: (task: Task) => void; onUpdateTask: (task: Task) => void;
   onUpdateUser: (u: Partial<User>) => void;
   properties: Property[]; onAddProperty: (p: Property) => void; onUpdateProperty: (p: Property) => void;
+  onDeleteProperty: (id: string) => void;
 }> = ({
   user, onLogout, lang, setLang, tasks, onAddTask, onUpdateTask, onUpdateUser,
-  properties, onAddProperty, onUpdateProperty,
+  properties, onAddProperty, onUpdateProperty, onDeleteProperty,
 }) => {
   const [view, setView] = useState<AdminView>('dashboard');
   const [showReportModal, setShowReportModal] = useState(false);
-  const [rooms, setRooms] = useState<Room[]>(() => generateRooms(MOCK_PROPERTY));
   const [inventory] = useState<InventoryItem[]>(MOCK_INVENTORY);
   const t = LANG_LABELS[lang];
   const openIssueCount = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS').length;
-  const activeProperty = properties.find(p => p.id === user.propertyId) || properties[0] || MOCK_PROPERTY;
+
+  const initialPropertyId = user.propertyId && properties.find(p => p.id === user.propertyId)
+    ? user.propertyId
+    : properties[0]?.id ?? MOCK_PROPERTY.id;
+  const [activePropertyId, setActivePropertyId] = useState(initialPropertyId);
+
+  const activeProperty = properties.find(p => p.id === activePropertyId) || properties[0] || MOCK_PROPERTY;
+  const [rooms, setRooms] = useState<Room[]>(() => generateRooms(activeProperty));
+
+  useEffect(() => {
+    setRooms(generateRooms(activeProperty));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePropertyId]);
 
   const navItems: { view: AdminView; icon: string; label: string }[] = [
     { view: 'dashboard', icon: 'grid_view', label: t.dashboard },
@@ -3449,7 +3544,7 @@ const AdminPortal: React.FC<{
 
   return (
     <div className="flex h-screen bg-surface overflow-hidden">
-      <AdminSidebar view={view} setView={setView} onLogout={onLogout} property={activeProperty} lang={lang} setLang={setLang} openIssueCount={openIssueCount} />
+      <AdminSidebar view={view} setView={setView} onLogout={onLogout} property={activeProperty} properties={properties} activePropertyId={activePropertyId} onPropertyChange={id => { setActivePropertyId(id); setView('dashboard'); }} lang={lang} setLang={setLang} openIssueCount={openIssueCount} />
       <main className="flex-1 overflow-hidden flex flex-col bg-surface blueprint-bg min-w-0">
         {/* Top bar */}
         <div className="h-12 border-b border-border bg-surface-2/50 flex items-center px-4 justify-between shrink-0">
@@ -3503,6 +3598,13 @@ const AdminPortal: React.FC<{
               properties={properties}
               onAddProperty={onAddProperty}
               onUpdateProperty={onUpdateProperty}
+              onDeleteProperty={id => {
+                onDeleteProperty(id);
+                if (id === activePropertyId) {
+                  const next = properties.find(p => p.id !== id);
+                  if (next) setActivePropertyId(next.id);
+                }
+              }}
               lang={lang}
               onUpdateUser={onUpdateUser}
             />
@@ -4464,6 +4566,11 @@ export default function App() {
     try { await updateDoc(doc(db, 'properties', updated.id), { ...updated }); } catch { /* offline */ }
   };
 
+  const handleDeleteProperty = async (id: string) => {
+    setProperties(prev => prev.filter(p => p.id !== id));
+    try { await deleteDoc(doc(db, 'properties', id)); } catch { /* offline */ }
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen blueprint-bg flex items-center justify-center">
@@ -4485,7 +4592,7 @@ export default function App() {
         <AdminPortal
           user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang}
           tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onUpdateUser={handleUpdateUser}
-          properties={properties} onAddProperty={handleAddProperty} onUpdateProperty={handleUpdateProperty}
+          properties={properties} onAddProperty={handleAddProperty} onUpdateProperty={handleUpdateProperty} onDeleteProperty={handleDeleteProperty}
         />
       )}
       {portal === 'staff' && currentUser && (
