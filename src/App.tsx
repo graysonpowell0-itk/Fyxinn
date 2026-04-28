@@ -3597,7 +3597,7 @@ const AdminCalendar: React.FC<{ lang: Lang }> = ({ lang }) => {
           {/* Day headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {CAL_DAY_NAMES.map(d => (
-              <div key={d} className="text-center text-[9px] text-gray-600 font-grotesk uppercase tracking-widest py-1">{d}</div>
+              <div key={d} className="text-center text-[11px] text-[#e0e2e6] font-grotesk uppercase tracking-widest py-1">{d}</div>
             ))}
           </div>
 
@@ -3621,8 +3621,8 @@ const AdminCalendar: React.FC<{ lang: Lang }> = ({ lang }) => {
                       : 'border-border bg-surface-2/20 hover:bg-surface-2/50'
                   }`}
                 >
-                  <span className={`text-[10px] font-grotesk font-700 mb-1 block ${
-                    isToday ? 'text-cyan-400' : isSelected ? 'text-primary' : 'text-gray-400'
+                  <span className={`text-[11px] font-grotesk font-700 mb-1 block ${
+                    isToday ? 'text-cyan-400' : isSelected ? 'text-primary' : 'text-[#e0e2e6]'
                   }`}>{day}</span>
                   <div className="space-y-0.5">
                     {dayEvents.slice(0, 2).map(ev => (
