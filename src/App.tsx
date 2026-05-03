@@ -19,6 +19,11 @@ import {
 // ─── Assets ──────────────────────────────────────────────────────────────────
 import logoVertical from './assets/logo-vertical.png';
 import logoHorizontal from './assets/Fxyinn_horizontal_no_bgr_brd.png';
+import aiBotImage from './assets/ai-bot.png';
+
+// ─── Anthropic ────────────────────────────────────────────────────────────────
+import Anthropic from '@anthropic-ai/sdk';
+import { StayFykedPortal } from './components/stayfyked/StayFykedPortal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Portal = 'select' | 'admin-login' | 'staff-login' | 'general-staff-login' | 'admin' | 'staff' | 'general-staff';
@@ -40,7 +45,7 @@ const Icon: React.FC<{ name: string; size?: number; filled?: boolean; className?
 );
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
-const MOCK_PROPERTY: Property = {
+export const MOCK_PROPERTY: Property = {
   id: 'prop-1',
   name: 'Grandview Resort & Spa',
   floors: 4,
@@ -56,7 +61,7 @@ const HOUSEKEEPING_STATUSES: HousekeepingStatus[] = [
   'Vacant', 'Occupied', 'Stay Over', 'Dirty', 'Pending Departure', 'Out of Order'
 ];
 
-function generateRooms(property: Property): Room[] {
+export function generateRooms(property: Property): Room[] {
   const rooms: Room[] = [];
   const statuses = [RoomStatus.COMPLETED, RoomStatus.IN_PROGRESS, RoomStatus.ISSUE_REPORTED, RoomStatus.WAITING_APPROVAL];
   const hkStatuses: HousekeepingStatus[] = ['Vacant', 'Occupied', 'Stay Over', 'Dirty', 'Pending Departure'];
@@ -5238,25 +5243,17 @@ const GSChatView: React.FC<{ user: User; lang: Lang; tasks: Task[] }> = ({ user,
 // ─── General Staff: AI Assistant View ────────────────────────────────────────
 type AssistantMsg = { role: 'user' | 'assistant'; content: string };
 
-const REPAIR_KB: { keywords: string[]; response: string }[] = [
-  { keywords: ['toilet', 'running', 'flush', 'leaking toilet'], response: 'Check if the flapper valve is sealing properly — lift the tank lid and press the flapper down. If the toilet still runs, the fill valve may need adjustment. Turn the water supply off (valve behind toilet) and notify maintenance.' },
-  { keywords: ['faucet', 'drip', 'leak', 'dripping'], response: 'Turn off the water supply valves under the sink. Place a towel under the pipes to catch drips. Do not attempt to disassemble faucet internals — notify maintenance with the room number and which faucet (hot/cold).' },
-  { keywords: ['light', 'bulb', 'flicker', 'not working', 'lamp'], response: 'First check if the circuit breaker for that room tripped. Try replacing the bulb — use the same wattage/type. If the issue persists after bulb swap, it may be a wiring issue; notify maintenance.' },
-  { keywords: ['ac', 'hvac', 'air conditioning', 'heat', 'heating', 'cold', 'hot room'], response: 'Check the thermostat setting — ensure it\'s in the correct mode (COOL/HEAT) and the fan is ON or AUTO. Replace the filter if it looks clogged (check vent covers). If unit makes loud noises or blows no air, shut it off and notify maintenance.' },
-  { keywords: ['outlet', 'plug', 'socket', 'power', 'no power'], response: 'Check if there is a GFCI outlet nearby (usually in bathrooms) with a tripped RESET button — press the center button. Also check the room\'s circuit breaker. If neither resolves it, tag the outlet and notify maintenance.' },
-  { keywords: ['smoke', 'detector', 'alarm', 'beeping'], response: 'A slow single beep usually means a low battery. Replace the 9V battery if accessible. If the alarm sounds continuously without visible smoke, evacuate the area and call the front desk immediately.' },
-  { keywords: ['door', 'lock', 'stuck', 'key', 'card'], response: 'For electronic locks: remove and re-insert the key card slowly. Check the battery indicator light on the lock panel. If the door is physically stuck, do not force it — notify maintenance and the front desk.' },
-  { keywords: ['clog', 'drain', 'slow', 'backup', 'sink', 'shower drain'], response: 'Remove the drain cover and clear visible hair/debris with gloves. Pour hot (not boiling) water down the drain. Do not use harsh chemical drain cleaners. If drain is fully blocked, notify maintenance.' },
-  { keywords: ['window', 'blind', 'curtain', 'shade'], response: 'For stuck blinds: gently pull the cord straight down before tilting. For windows that won\'t close: check if the track is clear of debris. Do not force window mechanisms — notify maintenance if the window cannot be secured.' },
-];
+const ANTHROPIC_SYSTEM_PROMPT = `You are FyxBot, an expert hotel maintenance assistant for Fyxinn property management. You help hotel staff (housekeeping, front desk, kitchen) troubleshoot and handle maintenance issues quickly.
 
-const getAssistantResponse = (input: string): string => {
-  const lower = input.toLowerCase();
-  for (const kb of REPAIR_KB) {
-    if (kb.keywords.some(k => lower.includes(k))) return kb.response;
-  }
-  return 'I don\'t have a specific tip for that issue. Please describe it in more detail, or use the Report Issue tab so maintenance can respond directly.';
-};
+Your role:
+- Give concise, actionable troubleshooting steps for common hotel maintenance issues (plumbing, HVAC, electrical, locks, appliances, etc.)
+- Always prioritize guest safety — if there is any safety risk, tell staff to evacuate and contact maintenance immediately
+- Keep answers brief and practical — staff are on the floor and need fast guidance
+- If an issue is beyond basic troubleshooting, advise staff to use the Report Issue tab so a maintenance tech can respond
+- Be friendly and professional
+- If asked in Spanish or Hindi, respond in the same language
+
+Common issues you handle: running toilets, leaky faucets, clogged drains, AC/heating problems, flickering lights, tripped circuit breakers, GFCI outlets, smoke alarms, door locks/key cards, stuck windows, broken blinds, and general appliance issues.`;
 
 const GSAssistantView: React.FC<{ lang: Lang }> = ({ lang }) => {
   const t = LANG_LABELS[lang];
@@ -5265,57 +5262,116 @@ const GSAssistantView: React.FC<{ lang: Lang }> = ({ lang }) => {
   ]);
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [apiConfigured] = useState(() => {
+    const key = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    return key && key !== 'your_anthropic_api_key_here';
+  });
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const send = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || thinking || streaming) return;
     const userMsg = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    const history = [...messages, { role: 'user' as const, content: userMsg }];
+    setMessages(history);
     setThinking(true);
-    await new Promise(r => setTimeout(r, 600));
-    const reply = getAssistantResponse(userMsg);
-    setThinking(false);
-    setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+
+    if (!apiConfigured) {
+      await new Promise(r => setTimeout(r, 500));
+      setThinking(false);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'AI assistant is not configured yet. Please add your Anthropic API key to the .env file (VITE_ANTHROPIC_API_KEY) and rebuild the app.' }]);
+      return;
+    }
+
+    try {
+      const client = new Anthropic({
+        apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
+        dangerouslyAllowBrowser: true,
+      });
+
+      const apiMessages = history
+        .filter(m => m.content !== t.assistantWelcome)
+        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+
+      setThinking(false);
+      setStreaming(true);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+      const stream = await client.messages.stream({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system: ANTHROPIC_SYSTEM_PROMPT,
+        messages: apiMessages,
+      });
+
+      let fullText = '';
+      for await (const chunk of stream.textStream) {
+        fullText += chunk;
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', content: fullText };
+          return updated;
+        });
+      }
+    } catch (err) {
+      setThinking(false);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, I had trouble connecting. Please check your network and try again, or use the Report Issue tab.' }]);
+    } finally {
+      setStreaming(false);
+    }
   };
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="shrink-0 border-b border-border bg-surface-2/80 px-4 py-2.5 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center">
-          <Icon name="smart_toy" size={14} className="text-primary" />
+      <div className="shrink-0 border-b border-border bg-surface-2/80 px-4 py-2 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full overflow-hidden shrink-0 border border-cyan-400/30 bg-surface">
+          <img src={aiBotImage} alt="FyxBot" className="w-full h-full object-cover" />
         </div>
         <div>
-          <p className="text-[11px] font-grotesk font-700 text-gray-100">{t.aiAssistant}</p>
-          <p className="text-[8px] font-grotesk text-primary uppercase tracking-widest">{t.online}</p>
+          <p className="text-[12px] font-grotesk font-bold text-gray-100">FyxBot</p>
+          <p className="text-[9px] font-grotesk text-cyan-400 uppercase tracking-widest">{apiConfigured ? t.online : 'Offline — API key needed'}</p>
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
         </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
             {msg.role === 'assistant' && (
-              <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-                <Icon name="smart_toy" size={12} className="text-primary" />
+              <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-cyan-400/30 bg-surface mt-0.5">
+                <img src={aiBotImage} alt="FyxBot" className="w-full h-full object-cover" />
               </div>
             )}
-            <div className={`max-w-[80%] px-3 py-2 rounded-sm text-[11px] font-grotesk leading-relaxed ${msg.role === 'user' ? 'bg-orange-500/20 border border-orange-500/30 text-gray-100 rounded-tr-none' : 'bg-surface-2 border border-border text-gray-200 rounded-tl-none'}`}>
-              {msg.content}
+            <div className={`max-w-[78%] px-3 py-2 rounded-lg text-[12px] font-grotesk leading-relaxed ${
+              msg.role === 'user'
+                ? 'bg-orange-500/20 border border-orange-500/30 text-gray-100 rounded-tr-none'
+                : 'bg-surface-2 border border-border text-gray-200 rounded-tl-none'
+            }`}>
+              {msg.content || (streaming && i === messages.length - 1 && (
+                <span className="flex gap-1 py-0.5">
+                  {[0,1,2].map(j => (
+                    <span key={j} className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: `${j * 150}ms` }} />
+                  ))}
+                </span>
+              ))}
             </div>
           </div>
         ))}
         {thinking && (
           <div className="flex justify-start items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0">
-              <Icon name="smart_toy" size={12} className="text-primary" />
+            <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-cyan-400/30 bg-surface">
+              <img src={aiBotImage} alt="FyxBot" className="w-full h-full object-cover" />
             </div>
-            <div className="bg-surface-2 border border-border rounded-sm rounded-tl-none px-3 py-2 flex gap-1">
+            <div className="bg-surface-2 border border-border rounded-lg rounded-tl-none px-3 py-2 flex gap-1">
               {[0,1,2].map(i => (
-                <span key={i} className="w-1.5 h-1.5 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+                <span key={i} className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
               ))}
             </div>
           </div>
@@ -5330,10 +5386,10 @@ const GSAssistantView: React.FC<{ lang: Lang }> = ({ lang }) => {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
           placeholder={t.typeYourQuestion}
-          className="flex-1 bg-surface border border-border rounded-sm px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-primary"
+          className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-sm text-gray-200 font-grotesk placeholder-gray-600 focus:outline-none focus:border-cyan-400"
         />
-        <button onClick={send} disabled={!input.trim() || thinking}
-          className="px-3 py-2 bg-primary hover:bg-primary/80 disabled:opacity-40 text-black rounded-sm transition-colors">
+        <button onClick={send} disabled={!input.trim() || thinking || streaming}
+          className="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-black rounded-lg transition-colors">
           <Icon name="send" size={16} />
         </button>
       </div>
@@ -5356,7 +5412,7 @@ const GeneralStaffPortal: React.FC<{
     { view: 'logs', icon: 'history', label: t.roomLogs.split(' ')[0] },
     { view: 'schedule', icon: 'engineering', label: t.scheduleView },
     { view: 'chat', icon: 'chat', label: t.chatWithTech.split(' ')[0] },
-    { view: 'assistant', icon: 'smart_toy', label: t.aiAssistant.split(' ')[0] },
+    { view: 'assistant', icon: '', label: 'FyxBot' },
   ];
 
   return (
@@ -5388,7 +5444,13 @@ const GeneralStaffPortal: React.FC<{
         {navItems.map(item => (
           <button key={item.view} onClick={() => setView(item.view)}
             className={`flex flex-col items-center gap-0.5 px-1 py-1 rounded-sm transition-all ${view === item.view ? 'text-orange-400' : 'text-gray-600 hover:text-gray-400'}`}>
-            <Icon name={item.icon} size={20} filled={view === item.view} />
+            {item.view === 'assistant' ? (
+              <div className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-all ${view === 'assistant' ? 'border-cyan-400' : 'border-gray-600'}`}>
+                <img src={aiBotImage} alt="FyxBot" className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <Icon name={item.icon} size={20} filled={view === item.view} />
+            )}
             <span className="text-[7px] font-grotesk uppercase tracking-widest">{item.label}</span>
           </button>
         ))}
@@ -5586,7 +5648,14 @@ export default function App() {
         />
       )}
       {portal === 'staff' && currentUser && (
-        <StaffPortal user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onUpdateUser={handleUpdateUser} />
+        <StayFykedPortal 
+          user={currentUser} 
+          onLogout={handleLogout} 
+          tasks={tasks} 
+          properties={properties} 
+          rooms={[]} 
+          onAddTask={handleAddTask} 
+        />
       )}
       {portal === 'general-staff' && currentUser && (
         <GeneralStaffPortal user={currentUser} onLogout={handleLogout} lang={lang} setLang={setLang} tasks={tasks} onAddTask={handleAddTask} />
