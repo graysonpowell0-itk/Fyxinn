@@ -11,12 +11,13 @@ service cloud.firestore {
     }
 
     // ── Properties ───────────────────────────────────────────────────────────
-    // Any signed-in user can read. Only admins should write — enforced by
+    // Any signed-in user can read. Admins and Maintenance managers can write
+    // (property setup, room numbering, PM requirement PDFs) — enforced by
     // checking the stored role field on the caller's user document.
     match /properties/{propertyId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin';
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Admin', 'Maintenance'];
     }
 
     // ── Tasks ─────────────────────────────────────────────────────────────────

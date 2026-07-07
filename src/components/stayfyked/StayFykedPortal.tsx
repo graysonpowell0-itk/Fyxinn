@@ -35,7 +35,7 @@ const NAV_ITEMS: { view: View; icon: string; label: string }[] = [
 
 export const StayFykedPortal: React.FC<Props> = ({
   user, onLogout, tasks, properties, rooms: initialRooms, onAddTask,
-  onUpdateUser, onAddProperty, onDeleteProperty,
+  onUpdateUser, onAddProperty, onUpdateProperty, onDeleteProperty,
 }) => {
   const [view, setView] = useState<View>('dashboard');
   const [rooms] = useState<Room[]>(() => initialRooms && initialRooms.length > 0 ? initialRooms : generateRooms(MOCK_PROPERTY));
@@ -72,13 +72,14 @@ export const StayFykedPortal: React.FC<Props> = ({
         {view === 'roomgrid' && <RoomGrid rooms={rooms} />}
         {view === 'schedule' && <MaintenanceSchedule tasks={tasks} user={user} />}
         {view === 'repair' && <DocumentRepair user={user} onSubmit={(t) => { onAddTask(t); setView('schedule'); }} onCancel={() => setView('dashboard')} />}
-        {view === 'checklist' && <PMChecklist />}
+        {view === 'checklist' && <PMChecklist properties={properties} />}
         {view === 'profile' && (
           <ProfileSettings
             user={user}
             properties={properties}
             onUpdateUser={onUpdateUser}
             onAddProperty={onAddProperty}
+            onUpdateProperty={onUpdateProperty}
             onDeleteProperty={onDeleteProperty}
             onLogout={onLogout}
           />

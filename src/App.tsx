@@ -25,6 +25,7 @@ import aiBotImage from './assets/ai-bot.png';
 import Anthropic from '@anthropic-ai/sdk';
 import { StayFykedPortal } from './components/stayfyked/StayFykedPortal';
 import { ThemeToggle } from './theme';
+import { uploadPropertyPdf, openPdf } from './pdf';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Portal = 'select' | 'admin-login' | 'staff-login' | 'general-staff-login' | 'admin' | 'staff' | 'general-staff';
@@ -2662,19 +2663,22 @@ export const AddPropertyModal: React.FC<{
   onSave: (p: Property) => void;
   onClose: () => void;
   lang?: Lang;
-}> = ({ onSave, onClose, lang = 'EN' }) => {
+  initial?: Property; // when set, the modal edits this property instead of creating one
+}> = ({ onSave, onClose, lang = 'EN', initial }) => {
   const t = LANG_LABELS[lang];
-  const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [phone, setPhone] = useState('');
-  const [floorCount, setFloorCount] = useState(1);
-  const [floorLayouts, setFloorLayouts] = useState<{ floor: number; start: number; end: number }[]>([
-    { floor: 1, start: 101, end: 120 },
-  ]);
-  const [amenities, setAmenities] = useState<string[]>([]);
+  const [name, setName] = useState(initial?.name ?? '');
+  const [address, setAddress] = useState(initial?.address ?? '');
+  const [phone, setPhone] = useState(initial?.phone ?? '');
+  const [floorCount, setFloorCount] = useState(initial?.floors ?? 1);
+  const [floorLayouts, setFloorLayouts] = useState<{ floor: number; start: number; end: number }[]>(
+    initial?.floorLayouts && initial.floorLayouts.length > 0
+      ? initial.floorLayouts
+      : [{ floor: 1, start: 101, end: 120 }],
+  );
+  const [amenities, setAmenities] = useState<string[]>(initial?.amenities ?? []);
   const [customAmenity, setCustomAmenity] = useState('');
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [schematicName, setSchematicName] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(initial?.photoUrl ?? null);
+  const [schematicName, setSchematicName] = useState(initial?.schematicUrl ?? '');
   const [error, setError] = useState('');
   const logoRef = useRef<HTMLInputElement>(null);
   const schematicRef = useRef<HTMLInputElement>(null);
@@ -2713,7 +2717,8 @@ export const AddPropertyModal: React.FC<{
   const handleSave = () => {
     if (!name.trim()) { setError(t.propertyNameRequired); return; }
     onSave({
-      id: `prop-${Date.now()}`,
+      ...(initial ?? {}),
+      id: initial?.id ?? `prop-${Date.now()}`,
       name: name.trim(),
       address: address.trim() || undefined,
       phone: phone.trim() || undefined,
@@ -2734,7 +2739,7 @@ export const AddPropertyModal: React.FC<{
           <div>
             <h2 className="font-grotesk text-sm font-700 text-gray-100 flex items-center gap-2">
               <Icon name="apartment" size={16} className="text-primary" />
-              {t.addProperty}
+              {initial ? `Edit ${initial.name}` : t.addProperty}
             </h2>
             <p className="text-[10px] text-gray-500 font-grotesk mt-0.5">{t.propertyConfig}</p>
           </div>
@@ -2955,12 +2960,28 @@ const AdminSettings: React.FC<{
 }> = ({ user, property, properties, onAddProperty, onUpdateProperty, onDeleteProperty, lang, onUpdateUser }) => {
   const t = LANG_LABELS[lang];
   const [showAddProperty, setShowAddProperty] = useState(false);
+  const [editProperty, setEditProperty] = useState<Property | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [pmUploadingId, setPmUploadingId] = useState<string | null>(null);
+  const [pmError, setPmError] = useState('');
 
   const handlePropertyLogoChange = (p: Property, file: File) => {
     const reader = new FileReader();
     reader.onload = e => onUpdateProperty({ ...p, photoUrl: e.target?.result as string });
     reader.readAsDataURL(file);
+  };
+
+  const handlePmPdfChange = async (p: Property, file: File) => {
+    setPmError('');
+    setPmUploadingId(p.id);
+    try {
+      const { url, name: pdfName } = await uploadPropertyPdf(p.id, file);
+      onUpdateProperty({ ...p, pmPdfUrl: url, pmPdfName: pdfName });
+    } catch (err) {
+      setPmError(err instanceof Error ? err.message : 'PDF upload failed.');
+    } finally {
+      setPmUploadingId(null);
+    }
   };
 
   return (
@@ -3050,13 +3071,44 @@ const AdminSettings: React.FC<{
                         ))}
                       </div>
                     )}
-                    <p className="text-[9px] text-gray-700 font-grotesk mt-1.5 flex items-center gap-1">
-                      <Icon name="photo_library" size={10} />
-                      {t.companyLogo} — {t.uploadSchematics.toLowerCase()}
-                    </p>
+                    {/* PM requirements PDF */}
+                    <div className="mt-2 pt-2 border-t border-border flex items-center gap-2 flex-wrap">
+                      <span className="text-[9px] font-grotesk text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                        <Icon name="picture_as_pdf" size={12} className={p.pmPdfUrl ? 'text-primary' : 'text-gray-600'} />
+                        PM Requirements
+                      </span>
+                      {p.pmPdfUrl ? (
+                        <button
+                          onClick={() => openPdf(p.pmPdfUrl!)}
+                          className="text-[9px] font-grotesk text-primary border border-primary/30 bg-primary/5 hover:bg-primary/15 px-2 py-0.5 rounded-sm transition-colors max-w-[140px] truncate"
+                          title={p.pmPdfName}
+                        >
+                          View {p.pmPdfName || 'PDF'}
+                        </button>
+                      ) : (
+                        <span className="text-[9px] font-grotesk text-gray-600">No PDF uploaded</span>
+                      )}
+                      <label className="text-[9px] font-grotesk text-gray-500 border border-border px-2 py-0.5 rounded-sm hover:border-secondary hover:text-secondary transition-colors cursor-pointer">
+                        {pmUploadingId === p.id ? 'Uploading…' : p.pmPdfUrl ? 'Replace' : 'Upload PDF'}
+                        <input
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          className="hidden"
+                          disabled={pmUploadingId === p.id}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handlePmPdfChange(p, f); e.target.value = ''; }}
+                        />
+                      </label>
+                    </div>
                   </div>
-                  {/* Delete */}
+                  {/* Edit / Delete */}
                   <div className="shrink-0 flex flex-col items-end gap-1.5">
+                    <button
+                      onClick={() => setEditProperty(p)}
+                      title="Edit property (floors, room numbering, details)"
+                      className="text-gray-600 hover:text-primary transition-colors"
+                    >
+                      <Icon name="edit" size={16} />
+                    </button>
                     {confirmDeleteId === p.id ? (
                       <div className="flex flex-col items-end gap-1.5">
                         <p className="text-[9px] text-red-400 font-grotesk text-right max-w-[120px]">{t.confirmRemove}</p>
@@ -3093,10 +3145,25 @@ const AdminSettings: React.FC<{
       )}
     </div>
 
+    {pmError && (
+      <p className="text-[11px] text-red-400 flex items-center gap-1.5">
+        <Icon name="error" size={14} />
+        {pmError}
+      </p>
+    )}
+
     {showAddProperty && (
       <AddPropertyModal
         onSave={p => { onAddProperty(p); setShowAddProperty(false); }}
         onClose={() => setShowAddProperty(false)}
+        lang={lang}
+      />
+    )}
+    {editProperty && (
+      <AddPropertyModal
+        initial={editProperty}
+        onSave={p => { onUpdateProperty(p); setEditProperty(null); }}
+        onClose={() => setEditProperty(null)}
         lang={lang}
       />
     )}
@@ -5623,19 +5690,25 @@ export default function App() {
     }
   };
 
+  const reportPropertySaveError = (err: unknown) => {
+    console.error('Property save failed:', err);
+    alert('Hotel settings could not be saved to the server. Make sure you are online and your account role is Admin or Maintenance, then try again.');
+  };
+
   const handleAddProperty = async (p: Property) => {
     setProperties(prev => [...prev, p]);
-    try { await setDoc(doc(db, 'properties', p.id), p); } catch { /* offline */ }
+    try { await setDoc(doc(db, 'properties', p.id), p); } catch (err) { reportPropertySaveError(err); }
   };
 
   const handleUpdateProperty = async (updated: Property) => {
     setProperties(prev => prev.map(p => p.id === updated.id ? updated : p));
-    try { await updateDoc(doc(db, 'properties', updated.id), { ...updated }); } catch { /* offline */ }
+    // setDoc+merge (not updateDoc) so locally-seeded properties get created on first save
+    try { await setDoc(doc(db, 'properties', updated.id), { ...updated }, { merge: true }); } catch (err) { reportPropertySaveError(err); }
   };
 
   const handleDeleteProperty = async (id: string) => {
     setProperties(prev => prev.filter(p => p.id !== id));
-    try { await deleteDoc(doc(db, 'properties', id)); } catch { /* offline */ }
+    try { await deleteDoc(doc(db, 'properties', id)); } catch (err) { reportPropertySaveError(err); }
   };
 
   if (authLoading) {
