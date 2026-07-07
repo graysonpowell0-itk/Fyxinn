@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
+import { Property } from '../../types';
+import { openPdf } from '../../pdf';
 
-export const PMChecklist: React.FC = () => {
+interface Props {
+  properties?: Property[];
+}
+
+export const PMChecklist: React.FC<Props> = ({ properties = [] }) => {
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({
     'hvac': false,
     'smoke': false,
@@ -14,6 +20,35 @@ export const PMChecklist: React.FC = () => {
 
   return (
     <div className="flex-1 overflow-y-auto px-6 pt-6 pb-32">
+      {/* Per-property PM requirements PDFs */}
+      {properties.length > 0 && (
+        <section className="glass-card rounded-xl p-4 mb-6 space-y-3">
+          <h3 className="font-grotesk text-xs font-600 text-gray-300 uppercase tracking-widest flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary" style={{ fontSize: 16 }}>picture_as_pdf</span>
+            PM Requirements by Property
+          </h3>
+          <div className="space-y-2">
+            {properties.map(p => (
+              <div key={p.id} className="flex items-center justify-between gap-3">
+                <span className="text-xs font-grotesk text-gray-400 truncate">{p.name}</span>
+                {p.pmPdfUrl ? (
+                  <button
+                    onClick={() => openPdf(p.pmPdfUrl!)}
+                    title={p.pmPdfName}
+                    className="shrink-0 text-[10px] font-grotesk text-primary border border-primary/30 bg-primary/5 hover:bg-primary/15 px-2.5 py-1 rounded-sm transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>open_in_new</span>
+                    View PDF
+                  </button>
+                ) : (
+                  <span className="shrink-0 text-[10px] font-grotesk text-gray-600">No PDF — add in Profile</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Property Header Section */}
       <section className="relative h-48 rounded-xl overflow-hidden group mb-6">
         <img 

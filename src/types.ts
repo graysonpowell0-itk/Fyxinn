@@ -24,6 +24,8 @@ export interface Property {
   commonAreas?: string[];
   amenities?: string[];
   floorLayouts?: { floor: number; start: number; end: number }[];
+  pmPdfUrl?: string; // Preventative-maintenance requirements PDF (per property)
+  pmPdfName?: string;
 }
 
 export interface User {
