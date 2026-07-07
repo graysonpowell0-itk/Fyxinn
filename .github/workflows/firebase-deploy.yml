@@ -32,10 +32,20 @@ jobs:
           channelId: live
           projectId: maintech-v-1
 
-      - name: Deploy Firestore rules
+      # Requires the service account to have the "Firebase Rules Admin" and
+      # "Service Usage Viewer" IAM roles. Non-blocking so a permissions gap
+      # doesn't mark the hosting deploy as failed — rules can also be updated
+      # manually in the Firebase console (Firestore Database → Rules).
+      - name: Deploy Firestore rules (best effort)
+        continue-on-error: true
         run: |
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json"
-          npx firebase-tools deploy --only firestore:rules --project maintech-v-1 --non-interactive
+          if npx firebase-tools deploy --only firestore:rules --project maintech-v-1 --non-interactive; then
+            echo "Firestore rules deployed."
+          else
+            echo "::warning::Firestore rules were NOT deployed (service account lacks permission). Grant it 'Firebase Rules Admin' + 'Service Usage Viewer' in Google Cloud IAM, or publish firestore.rules manually in the Firebase console."
+            exit 1
+          fi
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MAINTECH_V_1 }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
