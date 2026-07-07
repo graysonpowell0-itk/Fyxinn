@@ -31,7 +31,7 @@ export const DocumentRepair: React.FC<Props> = ({ user, onSubmit, onCancel }) =>
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 pt-6 pb-32 max-w-lg mx-auto w-full">
+    <div className="flex-1 overflow-y-auto px-6 pt-6 pb-10 max-w-lg mx-auto w-full">
       {/* Header Section */}
       <header className="mb-6">
         <h2 className="font-headline-lg text-headline-lg text-on-background mb-1">Document Repair</h2>
@@ -111,7 +111,7 @@ export const DocumentRepair: React.FC<Props> = ({ user, onSubmit, onCancel }) =>
         </div>
 
         {/* Priority Selector */}
-        <div className="pt-2 pb-16">
+        <div className="pt-2">
           <label className="block font-label-lg text-label-lg text-primary uppercase mb-4 tracking-widest">Urgency Level</label>
           <div className="flex gap-2">
             <button 
@@ -144,8 +144,8 @@ export const DocumentRepair: React.FC<Props> = ({ user, onSubmit, onCancel }) =>
           </div>
         </div>
 
-        {/* Fixed Action Footer */}
-        <footer className="fixed bottom-20 left-0 w-full p-6 bg-neutral-900/90 backdrop-blur-xl border-t border-white/10 z-50">
+        {/* Action Footer */}
+        <footer className="pt-2 pb-4">
           <div className="max-w-lg mx-auto flex gap-4">
             <button 
               type="button"

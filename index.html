@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0A0A0A" />
     <title>Fyxinn — Hotel Maintenance Platform</title>
 
@@ -23,54 +23,54 @@
           extend: {
             colors: {
               "primary-dark": "#3eb512",
-              "surface-2": "#131313",
-              "surface-3": "#201f1f",
-              "border": "#2a2a2a",
+              "surface-2": "rgb(var(--c-surface-2) / <alpha-value>)",
+              "surface-3": "rgb(var(--c-surface-3) / <alpha-value>)",
+              "border": "rgb(var(--c-border) / <alpha-value>)",
               "on-secondary-fixed": "#001e2b",
               "on-primary": "#0d3900",
-              "surface-container-high": "#2a2a2a",
-              "on-background": "#e5e2e1",
+              "surface-container-high": "rgb(var(--c-surface-container-high) / <alpha-value>)",
+              "on-background": "rgb(var(--c-on-background) / <alpha-value>)",
               "on-error": "#690005",
-              "secondary": "#8ed8ff",
+              "secondary": "rgb(var(--c-secondary) / <alpha-value>)",
               "inverse-primary": "#226d00",
               "on-primary-container": "#1c5f00",
-              "surface-bright": "#3a3939",
+              "surface-bright": "rgb(var(--c-surface-bright) / <alpha-value>)",
               "tertiary-fixed-dim": "#ffb783",
               "on-secondary": "#003548",
               "on-tertiary-fixed-variant": "#713700",
-              "surface-container": "#201f1f",
+              "surface-container": "rgb(var(--c-surface-container) / <alpha-value>)",
               "on-tertiary-fixed": "#301400",
-              "error": "#ffb4ab",
+              "error": "rgb(var(--c-error) / <alpha-value>)",
               "primary-fixed-dim": "#58e21f",
               "secondary-fixed": "#c1e8ff",
-              "surface-dim": "#131313",
+              "surface-dim": "rgb(var(--c-surface) / <alpha-value>)",
               "primary-fixed": "#7cff4a",
               "tertiary-container": "#ffb784",
               "outline-variant": "#3e4a36",
               "on-tertiary": "#4f2500",
-              "primary": "#7bff48",
+              "primary": "rgb(var(--c-primary) / <alpha-value>)",
               "on-primary-fixed-variant": "#175200",
-              "on-surface": "#e5e2e1",
-              "inverse-on-surface": "#313030",
+              "on-surface": "rgb(var(--c-on-surface) / <alpha-value>)",
+              "inverse-on-surface": "rgb(var(--c-inverse-on-surface) / <alpha-value>)",
               "secondary-fixed-dim": "#74d1ff",
-              "background": "#131313",
-              "surface": "#131313",
-              "surface-container-lowest": "#0e0e0e",
-              "surface-variant": "#353534",
+              "background": "rgb(var(--c-surface) / <alpha-value>)",
+              "surface": "rgb(var(--c-surface) / <alpha-value>)",
+              "surface-container-lowest": "rgb(var(--c-surface-container-lowest) / <alpha-value>)",
+              "surface-variant": "rgb(var(--c-surface-variant) / <alpha-value>)",
               "tertiary-fixed": "#ffdcc5",
               "on-tertiary-container": "#824100",
               "primary-container": "#58e21f",
               "surface-tint": "#58e21f",
-              "on-surface-variant": "#bdcbb1",
+              "on-surface-variant": "rgb(var(--c-on-surface-variant) / <alpha-value>)",
               "on-primary-fixed": "#052100",
               "on-secondary-fixed-variant": "#004d67",
               "on-secondary-container": "#004b65",
-              "surface-container-low": "#1c1b1b",
+              "surface-container-low": "rgb(var(--c-surface-container-low) / <alpha-value>)",
               "error-container": "#93000a",
-              "surface-container-highest": "#353534",
-              "inverse-surface": "#e5e2e1",
+              "surface-container-highest": "rgb(var(--c-surface-container-highest) / <alpha-value>)",
+              "inverse-surface": "rgb(var(--c-inverse-surface) / <alpha-value>)",
               "tertiary": "#ffdcc6",
-              "secondary-container": "#00c1fd",
+              "secondary-container": "rgb(var(--c-secondary-container) / <alpha-value>)",
               "outline": "#87957d",
               "on-error-container": "#ffdad6"
             },
@@ -120,9 +120,59 @@
     <style>
       * { box-sizing: border-box; }
 
+      /* ── Theme variables (RGB triplets for Tailwind alpha support) ── */
+      :root {
+        --c-surface: 19 19 19;
+        --c-surface-2: 19 19 19;
+        --c-surface-3: 32 31 31;
+        --c-border: 42 42 42;
+        --c-on-surface: 229 226 225;
+        --c-on-background: 229 226 225;
+        --c-on-surface-variant: 189 203 177;
+        --c-surface-container-lowest: 14 14 14;
+        --c-surface-container-low: 28 27 27;
+        --c-surface-container: 32 31 31;
+        --c-surface-container-high: 42 42 42;
+        --c-surface-container-highest: 53 53 52;
+        --c-surface-bright: 58 57 57;
+        --c-surface-variant: 53 53 52;
+        --c-inverse-surface: 229 226 225;
+        --c-inverse-on-surface: 49 48 48;
+        --c-primary: 123 255 72;
+        --c-secondary: 142 216 255;
+        --c-secondary-container: 0 193 253;
+        --c-error: 255 180 171;
+        --body-bg: #0A0A0A;
+        --body-fg: #e4e4e4;
+      }
+      html.light {
+        --c-surface: 244 244 241;
+        --c-surface-2: 255 255 255;
+        --c-surface-3: 233 233 229;
+        --c-border: 215 215 209;
+        --c-on-surface: 28 27 27;
+        --c-on-background: 28 27 27;
+        --c-on-surface-variant: 68 72 62;
+        --c-surface-container-lowest: 255 255 255;
+        --c-surface-container-low: 249 249 246;
+        --c-surface-container: 238 238 235;
+        --c-surface-container-high: 228 228 224;
+        --c-surface-container-highest: 222 222 217;
+        --c-surface-bright: 250 250 248;
+        --c-surface-variant: 226 227 221;
+        --c-inverse-surface: 49 48 48;
+        --c-inverse-on-surface: 229 226 225;
+        --c-primary: 44 135 9;
+        --c-secondary: 0 104 140;
+        --c-secondary-container: 0 122 160;
+        --c-error: 186 26 26;
+        --body-bg: #f4f4f1;
+        --body-fg: #1d1d1b;
+      }
+
       body {
-        background: #0A0A0A;
-        color: #e4e4e4;
+        background: var(--body-bg);
+        color: var(--body-fg);
         font-family: 'Inter', sans-serif;
         margin: 0;
         padding: 0;
@@ -325,6 +375,72 @@
         transform: translateY(-1px);
         box-shadow: 0 4px 20px rgba(88,226,31,0.1);
       }
+
+      /* Brand logos: blend away the dark matte per theme */
+      img[alt="Fyxinn"] { mix-blend-mode: screen; }
+      html.light img[alt="Fyxinn"] { mix-blend-mode: multiply; filter: none !important; }
+
+      /* Mobile helpers */
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* ── Light mode overrides ─────────────────────────────────────── */
+      html.light .blueprint-bg {
+        background-color: #f4f4f1;
+        background-image:
+          linear-gradient(rgba(34,109,0,0.06) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(34,109,0,0.06) 1px, transparent 1px),
+          linear-gradient(rgba(34,109,0,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(34,109,0,0.03) 1px, transparent 1px);
+      }
+      html.light .glass-panel {
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      html.light .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      html.light .input-underline {
+        border-bottom-color: #d7d7d1;
+        color: #1c1b1b;
+      }
+      html.light .input-underline::placeholder { color: #9a9a94; }
+      html.light .input-box {
+        background: #ffffff;
+        border-color: #d7d7d1;
+        color: #1c1b1b;
+      }
+      html.light .input-box::placeholder { color: #9a9a94; }
+      html.light ::-webkit-scrollbar-track { background: #e8e8e4; }
+      html.light ::-webkit-scrollbar-thumb { background: #c9c9c4; }
+      html.light .pm-checkbox { background: #ffffff; border-color: #cfcfc9; }
+      html.light .pm-checkbox.checked { background: #2c8709; border-color: #2c8709; }
+      html.light .sidebar-nav-item { color: #6b6b66; }
+      html.light .sidebar-nav-item:hover,
+      html.light .sidebar-nav-item.active { color: #226d00; }
+
+      /* Remap dark-only utility classes used across the app */
+      html.light .text-gray-100 { color: #181818; }
+      html.light .text-gray-200 { color: #232323; }
+      html.light .text-gray-300 { color: #333333; }
+      html.light .text-gray-400 { color: #474747; }
+      html.light .text-gray-500 { color: #5c5c5c; }
+      html.light .text-gray-600 { color: #6f6f6f; }
+      html.light .text-gray-700 { color: #8a8a8a; }
+      html.light .text-neutral-400, html.light .text-zinc-400 { color: #4f4f4a; }
+      html.light .text-neutral-500, html.light .text-zinc-500 { color: #636360; }
+      html.light .text-neutral-600 { color: #77776f; }
+      html.light .bg-neutral-950\/80,
+      html.light .bg-neutral-900\/90,
+      html.light .bg-neutral-950\/60 { background-color: rgba(255, 255, 255, 0.88); }
+      html.light .bg-neutral-800, html.light .bg-zinc-800 { background-color: #e2e2dd; }
+      html.light .border-white\/10, html.light .border-white\/5 { border-color: rgba(0, 0, 0, 0.12); }
+      html.light .border-zinc-700\/50 { border-color: #d4d4cf; }
+      html.light .glass-panel .text-white,
+      html.light .glass-card .text-white { color: #1c1b1b; }
+      html.light .glass-panel .hover\:text-white:hover { color: #000000; }
     </style>
   </head>
   <body>
