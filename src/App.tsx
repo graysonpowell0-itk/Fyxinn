@@ -24,6 +24,7 @@ import aiBotImage from './assets/ai-bot.png';
 // ─── Anthropic ────────────────────────────────────────────────────────────────
 import Anthropic from '@anthropic-ai/sdk';
 import { StayFykedPortal } from './components/stayfyked/StayFykedPortal';
+import { ThemeToggle } from './theme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Portal = 'select' | 'admin-login' | 'staff-login' | 'general-staff-login' | 'admin' | 'staff' | 'general-staff';
@@ -1124,11 +1125,12 @@ const PortalSelect: React.FC<{ onSelect: (p: 'admin-login' | 'staff-login' | 'ge
   const t = LANG_LABELS[lang];
   return (
     <div className="min-h-screen blueprint-bg flex flex-col items-center justify-center p-6">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <ThemeToggle />
         <LangSwitcher lang={lang} onChange={setLang} />
       </div>
       <div className="flex flex-col items-center gap-8 max-w-xs w-full">
-        <img src={logoVertical} alt="Fyxinn" className="w-36 drop-shadow-2xl" style={{ filter: 'drop-shadow(0 0 24px rgba(88,226,31,0.4))', mixBlendMode: 'screen' }} />
+        <img src={logoVertical} alt="Fyxinn" className="w-36 drop-shadow-2xl" style={{ filter: 'drop-shadow(0 0 24px rgba(88,226,31,0.4))' }} />
         <div className="text-center">
           <p className="text-xs font-grotesk text-gray-500 uppercase tracking-[0.3em] mt-2">{t.hotelPlatform}</p>
         </div>
@@ -1258,7 +1260,7 @@ const AdminLogin: React.FC<{
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
           <div className="flex flex-col items-center mb-8">
-            <img src={logoVertical} alt="Fyxinn" className="w-28 mb-4" style={{ filter: 'drop-shadow(0 0 20px rgba(88,226,31,0.4))', mixBlendMode: 'screen' }} />
+            <img src={logoVertical} alt="Fyxinn" className="w-28 mb-4" style={{ filter: 'drop-shadow(0 0 20px rgba(88,226,31,0.4))' }} />
             <h2 className="font-grotesk text-xs text-gray-500 uppercase tracking-[0.3em]">
               {mode === 'login' ? t.adminTerminal : t.createAdminAccount}
             </h2>
@@ -1455,14 +1457,15 @@ const StaffLogin: React.FC<{
           <Icon name="arrow_back" size={16} />
         </button>
       </div>
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <ThemeToggle />
         <LangSwitcher lang={lang} onChange={setLang} />
       </div>
 
       <div className="w-full max-w-[280px] flex flex-col items-center gap-6">
         {/* Logo with border */}
         <div className="border border-primary/30 rounded-sm p-4 glow-green">
-          <img src={logoVertical} alt="Fyxinn" className="w-32" style={{ filter: 'drop-shadow(0 0 16px rgba(88,226,31,0.5))', mixBlendMode: 'screen' }} />
+          <img src={logoVertical} alt="Fyxinn" className="w-32" style={{ filter: 'drop-shadow(0 0 16px rgba(88,226,31,0.5))' }} />
         </div>
 
         {mode === 'register' && (
@@ -1637,13 +1640,14 @@ const GeneralStaffLogin: React.FC<{
           <Icon name="arrow_back" size={16} />
         </button>
       </div>
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        <ThemeToggle />
         <LangSwitcher lang={lang} onChange={setLang} />
       </div>
 
       <div className="w-full max-w-[280px] flex flex-col items-center gap-6">
         <div className="border border-orange-400/30 rounded-sm p-4" style={{ boxShadow: '0 0 24px rgba(251,146,60,0.15)' }}>
-          <img src={logoVertical} alt="Fyxinn" className="w-32" style={{ filter: 'drop-shadow(0 0 16px rgba(251,146,60,0.4))', mixBlendMode: 'screen' }} />
+          <img src={logoVertical} alt="Fyxinn" className="w-32" style={{ filter: 'drop-shadow(0 0 16px rgba(251,146,60,0.4))' }} />
         </div>
 
         <div className="text-center space-y-1">
@@ -1715,10 +1719,10 @@ const AdminSidebar: React.FC<{
   ];
 
   return (
-    <aside className="w-52 bg-surface-2 border-r border-border hidden md:flex flex-col h-screen sticky top-0 shrink-0">
+    <aside className="w-52 bg-surface-2 border-r border-border hidden md:flex flex-col h-[100dvh] sticky top-0 shrink-0">
       {/* Logo */}
       <div className="p-4 border-b border-border">
-        <img src={logoHorizontal} alt="Fyxinn" className="h-8 object-contain object-left" style={{ filter: 'drop-shadow(0 0 8px rgba(88,226,31,0.3))', mixBlendMode: 'screen' }} />
+        <img src={logoHorizontal} alt="Fyxinn" className="h-8 object-contain object-left" style={{ filter: 'drop-shadow(0 0 8px rgba(88,226,31,0.3))' }} />
       </div>
 
       {/* Property switcher */}
@@ -1787,7 +1791,10 @@ const AdminSidebar: React.FC<{
 
       {/* Bottom */}
       <div className="p-3 border-t border-border space-y-2">
-        <LangSwitcher lang={lang} onChange={setLang} />
+        <div className="flex items-center gap-2">
+          <LangSwitcher lang={lang} onChange={setLang} />
+          <ThemeToggle />
+        </div>
         <button
           onClick={onLogout}
           className="sidebar-nav-item w-full hover:text-red-400 hover:border-red-400/30"
@@ -2546,11 +2553,11 @@ const AdminSchematics: React.FC<{ lang: Lang }> = ({ lang }) => {
 };
 
 // ─── Profile Editor ───────────────────────────────────────────────────────────
-const ProfileEditor: React.FC<{
+export const ProfileEditor: React.FC<{
   user: User;
   onSave: (updates: Partial<User>) => void;
-  lang: Lang;
-}> = ({ user, onSave, lang }) => {
+  lang?: Lang;
+}> = ({ user, onSave, lang = 'EN' }) => {
   const t = LANG_LABELS[lang];
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
@@ -2651,11 +2658,11 @@ const ProfileEditor: React.FC<{
 };
 
 // ─── Add Property Modal ───────────────────────────────────────────────────────
-const AddPropertyModal: React.FC<{
+export const AddPropertyModal: React.FC<{
   onSave: (p: Property) => void;
   onClose: () => void;
-  lang: Lang;
-}> = ({ onSave, onClose, lang }) => {
+  lang?: Lang;
+}> = ({ onSave, onClose, lang = 'EN' }) => {
   const t = LANG_LABELS[lang];
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -3771,13 +3778,13 @@ const AdminPortal: React.FC<{
   const mobileNavItems = navItems.slice(0, 4); // Dashboard, Issues, Calendar, Room Grid
 
   return (
-    <div className="flex h-screen bg-surface overflow-hidden">
+    <div className="flex h-[100dvh] bg-surface overflow-hidden">
       <AdminSidebar view={view} setView={setView} onLogout={onLogout} property={activeProperty} properties={properties} activePropertyId={activePropertyId} onPropertyChange={id => { setActivePropertyId(id); setView('dashboard'); }} lang={lang} setLang={setLang} openIssueCount={openIssueCount} />
       <main className="flex-1 overflow-hidden flex flex-col bg-surface blueprint-bg min-w-0">
         {/* Top bar */}
         <div className="h-12 border-b border-border bg-surface-2/50 flex items-center px-4 justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <img src={logoHorizontal} alt="Fyxinn" className="h-6 object-contain md:hidden" style={{ filter: 'drop-shadow(0 0 6px rgba(88,226,31,0.3))', mixBlendMode: 'screen' }} />
+            <img src={logoHorizontal} alt="Fyxinn" className="h-6 object-contain md:hidden" style={{ filter: 'drop-shadow(0 0 6px rgba(88,226,31,0.3))' }} />
             <div className="hidden md:flex items-center gap-2">
               <span className="text-[10px] text-[#03d5e7] font-grotesk uppercase tracking-widest">FYXINN</span>
               <Icon name="chevron_right" size={14} className="text-gray-700" />
@@ -3926,9 +3933,12 @@ const AdminPortal: React.FC<{
                 ))}
               </div>
 
-              {/* Language + Logout */}
+              {/* Language + Theme + Logout */}
               <div className="px-5 py-3 border-t border-border flex items-center justify-between gap-4">
-                <LangSwitcher lang={lang} onChange={setLang} />
+                <div className="flex items-center gap-2">
+                  <LangSwitcher lang={lang} onChange={setLang} />
+                  <ThemeToggle />
+                </div>
                 <button
                   onClick={() => { setShowMobileMenu(false); onLogout(); }}
                   className="flex items-center gap-2 text-red-400 hover:text-red-300 font-grotesk text-xs font-600 uppercase tracking-widest transition-colors"
@@ -5405,6 +5415,7 @@ const GeneralStaffPortal: React.FC<{
   const [view, setView] = useState<GeneralStaffView>('report');
   const [rooms] = useState<Room[]>(() => generateRooms(MOCK_PROPERTY));
   const t = LANG_LABELS[lang];
+  const hasOpenRepair = tasks.some(task => task.status === 'PENDING' || task.status === 'IN_PROGRESS');
 
   const navItems: { view: GeneralStaffView; icon: string; label: string }[] = [
     { view: 'report', icon: 'report_problem', label: t.reportAnIssue.split(' ')[0] },
@@ -5412,16 +5423,22 @@ const GeneralStaffPortal: React.FC<{
     { view: 'logs', icon: 'history', label: t.roomLogs.split(' ')[0] },
     { view: 'schedule', icon: 'engineering', label: t.scheduleView },
     { view: 'chat', icon: 'chat', label: t.chatWithTech.split(' ')[0] },
-    { view: 'assistant', icon: '', label: 'FyxBot' },
+    // FyxBot is only available while a repair is open
+    ...(hasOpenRepair ? [{ view: 'assistant' as GeneralStaffView, icon: '', label: 'FyxBot' }] : []),
   ];
 
+  useEffect(() => {
+    if (view === 'assistant' && !hasOpenRepair) setView('report');
+  }, [view, hasOpenRepair]);
+
   return (
-    <div className="flex flex-col h-screen bg-surface overflow-hidden blueprint-bg">
+    <div className="flex flex-col h-[100dvh] bg-surface overflow-hidden blueprint-bg">
       {/* Header */}
       <div className="h-12 border-b border-border bg-surface-2/80 flex items-center justify-between px-4 shrink-0">
-        <img src={logoHorizontal} alt="Fyxinn" className="h-7 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(251,146,60,0.3))', mixBlendMode: 'screen' }} />
+        <img src={logoHorizontal} alt="Fyxinn" className="h-7 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(251,146,60,0.3))' }} />
         <div className="flex items-center gap-2">
           <span className="hidden sm:block text-[9px] font-grotesk text-orange-400 border border-orange-400/30 bg-orange-400/5 px-2 py-0.5 rounded-sm uppercase tracking-widest">{user.role}</span>
+          <ThemeToggle />
           <LangSwitcher lang={lang} onChange={setLang} />
           <button onClick={onLogout} className="text-gray-600 hover:text-gray-300 transition-colors ml-1">
             <Icon name="logout" size={18} />
@@ -5481,10 +5498,10 @@ const StaffPortal: React.FC<{
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-surface overflow-hidden blueprint-bg">
+    <div className="flex flex-col h-[100dvh] bg-surface overflow-hidden blueprint-bg">
       {/* Header */}
       <div className="h-12 border-b border-border bg-surface-2/80 flex items-center justify-between px-4 shrink-0">
-        <img src={logoHorizontal} alt="Fyxinn" className="h-7 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(88,226,31,0.3))', mixBlendMode: 'screen' }} />
+        <img src={logoHorizontal} alt="Fyxinn" className="h-7 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(88,226,31,0.3))' }} />
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setShowReportModal(true)}
@@ -5493,6 +5510,7 @@ const StaffPortal: React.FC<{
             <Icon name="report_problem" size={14} />
             <span className="hidden sm:inline">Report Issue</span>
           </button>
+          <ThemeToggle />
           <LangSwitcher lang={lang} onChange={setLang} />
           <button className="relative text-gray-600 hover:text-gray-300 transition-colors">
             <Icon name="notifications" size={20} />
@@ -5648,13 +5666,17 @@ export default function App() {
         />
       )}
       {portal === 'staff' && currentUser && (
-        <StayFykedPortal 
-          user={currentUser} 
-          onLogout={handleLogout} 
-          tasks={tasks} 
-          properties={properties} 
-          rooms={[]} 
-          onAddTask={handleAddTask} 
+        <StayFykedPortal
+          user={currentUser}
+          onLogout={handleLogout}
+          tasks={tasks}
+          properties={properties}
+          rooms={[]}
+          onAddTask={handleAddTask}
+          onUpdateUser={handleUpdateUser}
+          onAddProperty={handleAddProperty}
+          onUpdateProperty={handleUpdateProperty}
+          onDeleteProperty={handleDeleteProperty}
         />
       )}
       {portal === 'general-staff' && currentUser && (
